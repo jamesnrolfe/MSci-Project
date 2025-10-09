@@ -1,0 +1,6 @@
+(@v1.10) pkg>
+
+(@v1.10) pkg> status
+Status `~/.julia/environments/v1.10/Project.toml`
+  [7876af07] Example v0.5.3
+  [a93c6f00] DataFrames v1.2.2
