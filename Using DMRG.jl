@@ -226,6 +226,8 @@ main()
 
 """
 next steps ideas
+- try 1d line case, plot the ground states and the average bond dimensions required
+
 - make graph showing the ground states for changing the Probability from 0.01 to 0.99
 - graph of the fidelity to show how that changes as probability changes
 - use sigma = 0 
