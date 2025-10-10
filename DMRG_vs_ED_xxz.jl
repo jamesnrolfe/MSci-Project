@@ -92,6 +92,8 @@ end
 
 
 function DMRG_simulation(Nodes, adj_mat, Δ, χ)
+# USE A COMBINER TENSOR
+
     """
     Performs DMRG to find the ground state of the XXZ Hamiltonian.
 
@@ -209,6 +211,7 @@ function main()
     println()
     println(repeat("-", 40))
     println("Fidelity (Overlap |<ψ_ED|ψ_DMRG>|²): ", fidelity)
+    println("Error bound from fidelity: ", abs(1 - fidelity))
 
     if isapprox(fidelity, 1.0; atol=1e-6)
         println("The ground state vectors are consistent.")
@@ -225,5 +228,5 @@ main()
 next steps ideas
 - make graph showing the ground states for changing the Probability from 0.01 to 0.99
 - graph of the fidelity to show how that changes as probability changes
-- make probability used appear on the graph as a legend (FINDING IT TO BE NOT POSSIBLE)
+- use sigma = 0 
 """
