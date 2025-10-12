@@ -1,6 +1,8 @@
 """For creating Hamiltonian operators in different ways."""
 
 using LinearAlgebra
+using ITensors 
+using ITensorMPS
 
 function get_xxz_hamiltonian_exact(L::Int, J::Float64, Δ::Float64)
     """
@@ -51,4 +53,38 @@ function get_xxz_hamiltonian_exact(L::Int, J::Float64, Δ::Float64)
     end
 
     return H
+end
+
+function get_xxz_hamiltonian_itensor(sites, adj_mat, J::Float64, Δ::Float64)
+    """
+    Constructs the Hamiltonian for the XXZ spin chain model using ITensors, given a site set and an adjacency matrix.
+    """
+    L = length(sites)
+    
+    terms = ITensor[]
+
+    for j in 1:L-1
+        if adj_mat[j, j+1] == 1
+            sj_x = op("Sx", sites, j)
+            sjp1_x = op("Sx", sites, j+1)
+            push!(terms, J * sj_x * sjp1_x)
+            sj_y = op("Sy", sites, j)
+            sjp1_y = op("Sy", sites, j+1)
+            push!(terms, J * sj_y * sjp1_y)
+            sj_z = op("Sz", sites, j)
+            sjp1_z = op("Sz", sites, j+1)
+            push!(terms, Δ * sj_z * sjp1_z)
+        end
+    end 
+    H = sum(terms)
+    return H
+end
+
+function solve_xxz_hamiltonian_exact(H)
+    """Solves an exact Hamiltonian matrix H, returning the eigenvalues and ground state."""
+    eigens = eigen(Hermitian(H))
+    eigenvalues = eigens.values
+    ground_state = minimum(eigenvalues)
+    ψ = eigens.vectors[:, argmin(eigenvalues)]
+    return eigens, ground_state, ψ
 end
