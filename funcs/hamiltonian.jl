@@ -69,18 +69,28 @@ function create_xxz_hamiltonian_mpo(N, adj_mat, J, Δ, sites)
     ampo = OpSum()
     for i = 1:N-1
         for j = i+1:N
-            if adj_mat[i, j] == 1  # if there is some entanglement between i and j
-                # XX and YY terms: S+S- + S-S+ = 2(SxSx + SySy)
-                # So to get J(SxSx + SySy), we need J/2 * (S+S- + S-S+)
-                ampo += J/2, "S+", i, "S-", j
-                ampo += J/2, "S-", i, "S+", j
-                # ZZ term
-                ampo += J*Δ, "Sz", i, "Sz", j
+            weight = adj_mat[i, j]
+            if weight == 0
+                continue # skip if no connection
             end
+            # XX and YY terms: S+S- + S-S+ = 2(SxSx + SySy)
+            # So to get J(SxSx + SySy), we need J/2 * (S+S- + S-S+)
+            ampo += weight * J/2, "S+", i, "S-", j
+            ampo += weight * J/2, "S-", i, "S+", j
+            # ZZ term
+            ampo += weight * J * Δ, "Sz", i, "Sz", j
         end
     end
     H = MPO(ampo, sites)
     return H
+end 
+
+function solve_xxz_hamiltonian_dmrg_no_bs(H, ψ0, sweeps::Int=10, cutoff::Float64=1E-14)
+    """Solves the XXZ Hamiltonian using DMRG with given parameters. Returns the ground state energy and MPS. """
+    swps = Sweeps(sweeps)
+    setcutoff!(swps, cutoff)
+    E, ψ = dmrg(H, ψ0, swps; outputlevel=0)
+    return E, ψ # only ground state and ground state wavefunction
 end
 
 function solve_xxz_hamiltonian_dmrg(H, ψ0, sweeps::Int=10, bond_dim::Int=1000, cutoff::Float64=1E-14)

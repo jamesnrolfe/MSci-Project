@@ -1,4 +1,5 @@
-function generate_random_adjacency_matrix(L::Int, p::Float64)
+
+function generate_random_am(L::Int, p::Float64)
     """
     Generate the adjacency matrix for a 1D chain of length L, where each node is connected to every other with probability p.
     """
@@ -6,7 +7,7 @@ function generate_random_adjacency_matrix(L::Int, p::Float64)
     return LightGraphs.adjacency_matrix(G)
 end
 
-function plot_adjacency_matrix(adj_mat; layout_type::String = "circular")
+function plot_am(adj_mat; layout_type::String = "circular")
     """
     Plot the graph represented by the adjacency matrix.
 
@@ -35,7 +36,7 @@ function plot_adjacency_matrix(adj_mat; layout_type::String = "circular")
     return p
 end
 
-function generate_chain_adjacency_matrix(N::Int)
+function generate_chain_am(N::Int)
     """
     Generate adjacency matrix for a 1D chain with N nodes and nearest-neighbor connections only.
     Returns a symmetric N×N matrix where adj_mat[i,j] = 1 if nodes i and j are connected.
@@ -50,3 +51,53 @@ function generate_chain_adjacency_matrix(N::Int)
     
     return adj_mat
 end
+
+function generate_chain_wam(N::Int, σ::Float64; μ::Float64=1.0)
+    """
+    Create a weighted adjacency matrix for a 1D chain with N nodes and nearest-neighbor connections only.
+    Weights are drawn from a normal distribution with mean μ and standard deviation σ.
+    """
+    if σ == 0.0 # if no randomness, return unweighted chain graph
+        return generate_chain_am(N)
+    end
+
+    adj_mat = zeros(Float64, N, N)
+    
+    # connect each node to its nearest neighbors with weights
+    for i in 1:N-1
+        weight = μ + σ * randn() # weight from normal distribution with mean μ and std σ
+        adj_mat[i, i+1] = weight  # Connect i to i+1
+        adj_mat[i+1, i] = weight  # Connect i+1 to i (make symmetric)
+    end
+    
+    return adj_mat
+end
+
+function generate_fully_connected_am(N::Int)
+    """
+    Create an unweighted adjacency matrix for a fully connected graph of N nodes.
+    """
+    A = ones(Int, N, N)
+    for i in 1:N; A[i, i] = 0; end # remove self-loops
+    return A
+end
+
+function generate_fully_connected_wam(N::Int, σ::Float64; μ::Float64=1.0)
+    """
+    Create a weighted adjacency matrix for a fully connected graph of N nodes. μ should always be one really.
+    """
+
+    if σ == 0.0 # if no randomness, return unweighted fully connected graph
+        return generate_fully_connected_am(N)
+    end
+ 
+    A = zeros(Float64, N, N)
+    for i in 1:N
+        for j in (i+1):N
+            weight = μ + σ * randn() # weight from normal distribution with mean μ and std σ
+            A[i, j] = weight
+            A[j, i] = weight 
+        end
+    end
+    return A
+end 

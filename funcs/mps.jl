@@ -13,7 +13,7 @@ function create_custom_MPS(L::Int, Χ::Int, init_state::Vector{String}; conserve
     return ψ0, sites
 end
 
-function create_MPS(L::Int, Χ::Int; conserve_qns::Bool=true)
+function create_MPS(L::Int, conserve_qns::Bool=true)
     """Create a random MPS for a spin-1/2 chain of length L with bond dimension Χ."""
     # create a site set for a spin-1/2 chain
     sites = siteinds("S=1/2", L; conserve_qns=conserve_qns) # conserve total Sz
@@ -30,11 +30,11 @@ function create_MPS(L::Int, Χ::Int; conserve_qns::Bool=true)
     return ψ0, sites
 end
 
-function mps_to_array(ψ::MPS)
+function mps_to_array(ψ)
     """
     Convert an MPS wavefunction to a full state vector (array) with correct basis ordering.
 
-    #! SHOULD DEPRICATE - USE ITensors.contract(ψ) TO GET FULL TENSOR
+    #! SHOULD DEPRICATE - USE ITensors.contract(ψ) TO GET FULL TENSOR (USE mps_to_vector TO GET VECTOR)
     """
     N = length(ψ)
     
@@ -64,4 +64,14 @@ function mps_to_array(ψ::MPS)
     end
     
     return ψ_corrected
+end
+
+function mps_to_vector(psi_mps)
+    N = length(psi_mps)
+    psi_tensor = ITensors.contract(psi_mps)
+    psi_array = array(psi_tensor)
+    permutation = ntuple(i -> N - i + 1, N)
+    psi_array_ordered = permutedims(psi_array, permutation)
+    
+    return vec(psi_array_ordered)
 end
