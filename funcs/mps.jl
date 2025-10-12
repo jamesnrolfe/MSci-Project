@@ -29,3 +29,39 @@ function create_MPS(L::Int, Χ::Int; conserve_qns::Bool=true)
     ψ0 = randomMPS(sites, init_state)
     return ψ0, sites
 end
+
+function mps_to_array(ψ::MPS)
+    """
+    Convert an MPS wavefunction to a full state vector (array) with correct basis ordering.
+
+    #! SHOULD DEPRICATE - USE ITensors.contract(ψ) TO GET FULL TENSOR
+    """
+    N = length(ψ)
+    
+    # contract the MPS to get full tensor
+    ψ_tensor = ITensors.contract(ψ)
+    # convert to array - this gives the correct ITensor ordering
+    ψ_array = array(ψ_tensor)
+    
+    # reshape to vector
+    ψ_vector = reshape(ψ_array, (2^N,))
+    
+    # Convert ITensor basis ordering to standard Kronecker product ordering
+    # ITensor uses reverse ordering compared to standard tensor products
+    ψ_corrected = zeros(ComplexF64, 2^N)
+    
+    for i in 0:(2^N-1)
+        # convert index to binary representation
+        binary_rep = digits(i, base=2, pad=N)
+        
+        # ITensor uses reverse site ordering, so flip the binary representation
+        itensor_idx = 0
+        for j in 1:N
+            itensor_idx += binary_rep[N+1-j] * 2^(j-1)
+        end
+        
+        ψ_corrected[i+1] = ψ_vector[itensor_idx+1]
+    end
+    
+    return ψ_corrected
+end
