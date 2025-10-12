@@ -3,7 +3,7 @@
 using ITensors
 using ITensorMPS
 
-function create_custom_MPS(L::Int, Χ::Int, init_state::Vector{String}; conserve_qns::Bool=true)
+function create_custom_MPS(L::Int, init_state::Vector{String}; conserve_qns::Bool=true)
     """Create a random MPS for a spin-1/2 chain of length L with bond dimension Χ and a custom initial state."""
     # create a site set for a spin-1/2 chain
     sites = siteinds("S=1/2", L; conserve_qns=conserve_qns) # conserve total Sz
