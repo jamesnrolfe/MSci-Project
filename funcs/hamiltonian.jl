@@ -73,8 +73,8 @@ function create_xxz_hamiltonian_mpo(N, adj_mat, J, Δ, sites)
             if weight != 0.0
                 # XX and YY terms: S+S- + S-S+ = 2(SxSx + SySy)
                 # So to get J(SxSx + SySy), we need J/2 * (S+S- + S-S+)
-                ampo += weight * J/2, "S+", i, "S-", j
-                ampo += weight * J/2, "S-", i, "S+", j
+                ampo += -weight * J/2, "S+", i, "S-", j
+                ampo += -weight * J/2, "S-", i, "S+", j
                 # ZZ term
                 ampo += weight * J * Δ, "Sz", i, "Sz", j
             end
@@ -83,6 +83,25 @@ function create_xxz_hamiltonian_mpo(N, adj_mat, J, Δ, sites)
     H = MPO(ampo, sites)
     return H
 end 
+
+function create_xxz_hamiltonian_mpo_tyndall(N, adj_mat, J, Δ, sites)
+    """Create the XXZ Hamiltonian as an MPO given an adjacency matrix, using Tyndall's method."""
+    ampo = OpSum()
+    for i = 1:N-1
+        for j = i+1:N
+            weight = adj_mat[i, j]
+            if weight != 0.0
+                # use the tyndall hamiltonian that ash used
+                ampo += -2 * weight * J, "S+", i, "S-", j
+                ampo += -2 * weight * J, "S-", i, "S+", j
+                # ZZ term
+                ampo += 4 * weight * J * Δ, "Sz", i, "Sz", j
+            end
+        end
+    end
+    H = MPO(ampo, sites)
+    return H
+end
 
 function solve_xxz_hamiltonian_dmrg_no_bs(H::MPO, ψ0::MPS, sweeps::Int64=10, cutoff::Float64=1E-14)
     """Solves the XXZ Hamiltonian using DMRG with given parameters. Returns the ground state energy and MPS. """
