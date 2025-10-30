@@ -1,10 +1,7 @@
-using Markdown
-using InteractiveUtils
-using Statistics
-using Graphs, Random, GraphPlot, Plots, Colors, GraphRecipes
+using Statistics, Random
 using ITensors, ITensorMPS, LinearAlgebra
 using JLD2
-using Base.Threads  # <-- CHANGE 1: IMPORT THREADS
+using Base.Threads
 
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
@@ -24,7 +21,7 @@ function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     end
     A = zeros(Float64, N, N)
     for i in 1:N, j in (i+1):N
-        weight = μ + σ * randn()
+         weight = μ + σ * randn()
         A[i, j] = A[j, i] = weight
     end
     return A
@@ -48,8 +45,8 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
-function bond_dim_av_err()
-    N_range = 10:1:100
+function run_simulation_avg_err()
+    N_range = 10:1:11
     sigma_values = [0.0, 0.001, 0.002]
     num_graphs_avg = 10
     num_sweeps = 30
@@ -57,19 +54,18 @@ function bond_dim_av_err()
     cutoff = 1E-10
     μ = 1.0
 
-    results = Dict(σ => (avg=Float64[], err=Float64[]) for σ in sigma_values)
+    results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                         err=zeros(Float64, length(N_range))) 
+                   for σ in sigma_values)
 
-    for N in N_range
+    Threads.@threads for i in 1:length(N_range)
+        N = N_range[i] 
+        
         for σ in sigma_values
             
-            # --- CHANGE 2: PRE-ALLOCATE THE ARRAY ---
-            # We change from `bond_dims_for_avg = Float64[]` to:
             bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            # --- CHANGE 3: ADD THE THREADS MACRO ---
-            # We change `for _ in 1:num_graphs_avg` to:
-            Threads.@threads for i in 1:num_graphs_avg
-                # This whole block now runs in parallel
+            for k in 1:num_graphs_avg
                 ψ₀, sites = create_MPS(N)
                 adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
                 H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-0.5, Δ=0.5)
@@ -79,56 +75,28 @@ function bond_dim_av_err()
                 setcutoff!(sweeps, cutoff)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                
-                # --- CHANGE 4: WRITE TO INDEX INSTEAD OF PUSH! ---
-                # We change `push!(bond_dims_for_avg, ...)` to:
-                bond_dims_for_avg[i] = maxlinkdim(ψ_gs)
+    
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
             end
 
-            # The rest of the code is unchanged
             avg_dim = mean(bond_dims_for_avg)
             std_dev = std(bond_dims_for_avg)
             
-            push!(results[σ].avg, avg_dim)
-            push!(results[σ].err, std_dev)
-            println("Completed N = $N, Max Bond Dim = $avg_dim")
-
+            results[σ].avg[i] = avg_dim
+            results[σ].err[i] = std_dev
         end
+        println("Completed N = $N")
     end
     println("...calculations finished.")
 
-    # Note: Plotting in a batch script might not save the plot.
-    # It's better to save the plot data (which you are already doing)
-    # and plot it locally on your machine later.
-    plt = plot(
-        title="Saturated Bond Dimension for an Average Graph with N Nodes",
-        xlabel="Number of Nodes",
-        ylabel="Average Bond Dimension Required",
-        legend=:topleft,
-        gridalpha=0.3,
-        framestyle=:box
-    )
-
-    colors = Dict(0.0 => :gold, 0.001 => :darkviolet, 0.002 => :firebrick)
-
-    for σ in sigma_values
-        plot!(plt, N_range, results[σ].avg,
-            yerror=results[σ].err,
-            label="σ = $σ",
-            lw=1.5,
-            marker=:circle,
-            markersize=3,
-            color=colors[σ]
-        )
-    end
-    
-    return plt, results, N_range
+    return results, N_range
 end
 
 
 println("Starting calculations...")
-plt, results, N_range = bond_dim_av_err();
+results, N_range = run_simulation_avg_err();
 
-filename = "avg_err_bd.jld2"
+filename = joinpath(@__DIR__, "avg_err_bd_data.jld2")
 jldsave(filename; results, N_range)
 println("Data saved successfully.\n")
+

@@ -1,14 +1,9 @@
-using Markdown
-using InteractiveUtils
-using Graphs, Random, Statistics
-using Plots, Colors
+using Random
 using ITensors, ITensorMPS, LinearAlgebra
 using JLD2
-using Base.Threads  # <-- 1. IMPORT THREADS
+using Base.Threads  
 
-# seed for reproducibility
 Random.seed!(1234);
-
 
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
@@ -52,29 +47,23 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
+function run_simulation()
 
-function run_simulation_and_plot_delta()
-
-    N_range = 10:1:100  
+    N_range = 10:1:11  
     delta_range = [-1.0, -0.5, 0.0, 0.5, 1.0] 
-    
     
     num_sweeps = 30
     max_bond_dim_limit = 250
     cutoff = 1E-10
     μ = 1.0
-    
     σ = 0.0 
-
 
     max_bond_dims = zeros(Float64, length(N_range), length(delta_range))
 
-
     for (i, N) in enumerate(N_range)
         
-        # --- 2. ADD THE THREADS MACRO ---
-        # This will run the 5 'delta' calculations in parallel
-        Threads.@threads for (j, Δ_val) in enumerate(delta_range)
+        Threads.@threads for j in 1:length(delta_range)
+            Δ_val = delta_range[j] 
 
             ψ₀, sites = create_MPS(N)
             adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
@@ -86,40 +75,17 @@ function run_simulation_and_plot_delta()
 
             _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
             
-            # This is thread-safe because [i, j] is unique for each run
             max_bond_dims[i, j] = maxlinkdim(ψ_gs)
         end
-        println("Completed N = $N") # Feedback for each completed N
+        println("Completed N = $N") 
     end
-
-
-    N_values = collect(N_range)
-    delta_values = collect(delta_range)
-
-    # Note: plotlyjs() and plot() will not produce a visible plot
-    # in a batch script. They are harmless but will be ignored.
-    # The important part is saving the data.
-    plotlyjs() 
     
-    plt = plot(N_values, delta_values, max_bond_dims',
-        st=:surface,
-        title="Maximum Bond Dimension",
-        xlabel="System Size",
-        ylabel="Δ",  
-        zlabel="Maximum Bond Dimension",
-        camera=(50, 30),      
-        c=cgrad(:inferno),    
-        legend=false
-    )
-    
-    return plt, max_bond_dims, N_range, delta_range
+    return max_bond_dims, N_range, delta_range
 end
 
-println("Starting calculations...")
-plt, max_bond_dims, N_range, delta_range = run_simulation_and_plot_delta();
+max_bond_dims, N_range, delta_range = run_simulation();
 
 println("Calculations finished. Saving data...")
-filename = "surface_plot_delta_data.jld2"
+filename = joinpath(@__DIR__, "surface_plot_delta_data.jld2")
 jldsave(filename; max_bond_dims, N_range, delta_range)
 println("Data saved successfully.\n")
-
