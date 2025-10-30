@@ -1,10 +1,10 @@
-
 using Markdown
 using InteractiveUtils
 using Graphs, Random, Statistics
 using Plots, Colors
 using ITensors, ITensorMPS, LinearAlgebra
 using JLD2 
+using Base.Threads  # <-- 1. IMPORT THREADS
 
 # seed for reproducibility
 Random.seed!(1234);
@@ -58,7 +58,7 @@ end
 # and stores the results in a matrix suitable for a surface plot.
 function run_simulation_and_plot_sigma()
 
-    N_range = 10:4:75
+    N_range = 10:1:100
     sigma_range = 0.0:0.0001:0.002 
     num_graphs_avg = 10
 
@@ -73,8 +73,15 @@ function run_simulation_and_plot_sigma()
 
     for (i, N) in enumerate(N_range)
         for (j, σ) in enumerate(sigma_range)
-            bond_dims_for_avg = Float64[]
-            for _ in 1:num_graphs_avg
+            
+            # --- 2. PRE-ALLOCATE THE ARRAY ---
+            # We change from `bond_dims_for_avg = Float64[]` to:
+            bond_dims_for_avg = zeros(Float64, num_graphs_avg)
+            
+            # --- 3. ADD THE THREADS MACRO ---
+            # We change `for _ in 1:num_graphs_avg` to:
+            Threads.@threads for k in 1:num_graphs_avg
+                # This whole block now runs in parallel
                 ψ₀, sites = create_MPS(N)
                 adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
                 H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-0.5, Δ=0.5)
@@ -84,10 +91,14 @@ function run_simulation_and_plot_sigma()
                 setcutoff!(sweeps, cutoff)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                push!(bond_dims_for_avg, maxlinkdim(ψ_gs))
+                
+                # --- 4. WRITE TO INDEX INSTEAD OF PUSH! ---
+                # We change `push!(bond_dims_for_avg, ...)` to:
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
             end
             avg_bond_dims[i, j] = mean(bond_dims_for_avg)
         end
+        println("Completed N = $N") # Feedback for each completed N
     end
 
 
@@ -95,10 +106,10 @@ function run_simulation_and_plot_sigma()
     N_values = collect(N_range)
     sigma_values = collect(sigma_range)
 
+    # Note: plotlyjs() and plot() will not produce a visible plot
+    # in a batch script. They are harmless but will be ignored.
     plotlyjs() 
     
-    # The plot function expects the Z matrix dimensions to be (length(y), length(x))
-    # Since our matrix is (length(x), length(y)), we need to transpose it.
     plt = plot(N_values, sigma_values, avg_bond_dims',
         st=:surface,
         title="Maximum Bond Dimension",
@@ -113,18 +124,10 @@ function run_simulation_and_plot_sigma()
     return plt, avg_bond_dims, N_range, sigma_range
 end
 
-
+println("Starting calculations...")
 plt, avg_bond_dims, N_range, sigma_range = run_simulation_and_plot_sigma();
 
-
-
+println("Calculations finished. Saving data...")
 filename = "surface_plot_sigma_data.jld2"
 jldsave(filename; avg_bond_dims, N_range, sigma_range)
 println("Data saved successfully.\n")
-
-
-
-
-
-
-

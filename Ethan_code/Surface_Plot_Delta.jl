@@ -1,10 +1,10 @@
-
 using Markdown
 using InteractiveUtils
 using Graphs, Random, Statistics
 using Plots, Colors
 using ITensors, ITensorMPS, LinearAlgebra
-using JLD2 
+using JLD2
+using Base.Threads  # <-- 1. IMPORT THREADS
 
 # seed for reproducibility
 Random.seed!(1234);
@@ -55,7 +55,7 @@ end
 
 function run_simulation_and_plot_delta()
 
-    N_range = 10:2:100  
+    N_range = 10:1:100  
     delta_range = [-1.0, -0.5, 0.0, 0.5, 1.0] 
     
     
@@ -71,7 +71,10 @@ function run_simulation_and_plot_delta()
 
 
     for (i, N) in enumerate(N_range)
-        for (j, Δ_val) in enumerate(delta_range)
+        
+        # --- 2. ADD THE THREADS MACRO ---
+        # This will run the 5 'delta' calculations in parallel
+        Threads.@threads for (j, Δ_val) in enumerate(delta_range)
 
             ψ₀, sites = create_MPS(N)
             adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
@@ -83,18 +86,20 @@ function run_simulation_and_plot_delta()
 
             _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
             
+            # This is thread-safe because [i, j] is unique for each run
             max_bond_dims[i, j] = maxlinkdim(ψ_gs)
         end
+        println("Completed N = $N") # Feedback for each completed N
     end
 
 
     N_values = collect(N_range)
     delta_values = collect(delta_range)
 
+    # Note: plotlyjs() and plot() will not produce a visible plot
+    # in a batch script. They are harmless but will be ignored.
+    # The important part is saving the data.
     plotlyjs() 
-    
-    # The plot function expects the Z matrix dimensions to be (length(y), length(x))
-    # Since our matrix is (length(x), length(y)), we need to transpose it.
     
     plt = plot(N_values, delta_values, max_bond_dims',
         st=:surface,
@@ -110,19 +115,11 @@ function run_simulation_and_plot_delta()
     return plt, max_bond_dims, N_range, delta_range
 end
 
-
+println("Starting calculations...")
 plt, max_bond_dims, N_range, delta_range = run_simulation_and_plot_delta();
 
-
-
+println("Calculations finished. Saving data...")
 filename = "surface_plot_delta_data.jld2"
 jldsave(filename; max_bond_dims, N_range, delta_range)
 println("Data saved successfully.\n")
-
-
-
-
-
-
-
 

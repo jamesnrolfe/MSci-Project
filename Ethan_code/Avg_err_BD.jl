@@ -3,12 +3,8 @@ using InteractiveUtils
 using Statistics
 using Graphs, Random, GraphPlot, Plots, Colors, GraphRecipes
 using ITensors, ITensorMPS, LinearAlgebra
-using JLD2 
-
-
-
-
-
+using JLD2
+using Base.Threads  # <-- CHANGE 1: IMPORT THREADS
 
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
@@ -16,7 +12,6 @@ function create_MPS(L::Int)
     ψ₀ = randomMPS(sites, initial_state)
     return ψ₀, sites
 end
-
 
 """
 Creates a weighted adjacency matrix for a completely connected graph.
@@ -53,11 +48,8 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
-
-
-
 function bond_dim_av_err()
-    N_range = 10:1:75
+    N_range = 10:1:100
     sigma_values = [0.0, 0.001, 0.002]
     num_graphs_avg = 10
     num_sweeps = 30
@@ -69,8 +61,15 @@ function bond_dim_av_err()
 
     for N in N_range
         for σ in sigma_values
-            bond_dims_for_avg = Float64[]
-            for _ in 1:num_graphs_avg
+            
+            # --- CHANGE 2: PRE-ALLOCATE THE ARRAY ---
+            # We change from `bond_dims_for_avg = Float64[]` to:
+            bond_dims_for_avg = zeros(Float64, num_graphs_avg)
+            
+            # --- CHANGE 3: ADD THE THREADS MACRO ---
+            # We change `for _ in 1:num_graphs_avg` to:
+            Threads.@threads for i in 1:num_graphs_avg
+                # This whole block now runs in parallel
                 ψ₀, sites = create_MPS(N)
                 adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
                 H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-0.5, Δ=0.5)
@@ -80,9 +79,13 @@ function bond_dim_av_err()
                 setcutoff!(sweeps, cutoff)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                push!(bond_dims_for_avg, maxlinkdim(ψ_gs))
+                
+                # --- CHANGE 4: WRITE TO INDEX INSTEAD OF PUSH! ---
+                # We change `push!(bond_dims_for_avg, ...)` to:
+                bond_dims_for_avg[i] = maxlinkdim(ψ_gs)
             end
 
+            # The rest of the code is unchanged
             avg_dim = mean(bond_dims_for_avg)
             std_dev = std(bond_dims_for_avg)
             
@@ -94,6 +97,9 @@ function bond_dim_av_err()
     end
     println("...calculations finished.")
 
+    # Note: Plotting in a batch script might not save the plot.
+    # It's better to save the plot data (which you are already doing)
+    # and plot it locally on your machine later.
     plt = plot(
         title="Saturated Bond Dimension for an Average Graph with N Nodes",
         xlabel="Number of Nodes",
@@ -120,16 +126,9 @@ function bond_dim_av_err()
 end
 
 
-
-
+println("Starting calculations...")
 plt, results, N_range = bond_dim_av_err();
 
 filename = "avg_err_bd.jld2"
 jldsave(filename; results, N_range)
 println("Data saved successfully.\n")
-
-
-
-
-
-
