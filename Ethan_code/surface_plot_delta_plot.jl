@@ -6,7 +6,7 @@ function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
     if !isfile(data_file)
         println("Error: Data file '$data_file' not found.")
-        println("Please run 'Surface_Plot_Delta.jl' first to generate the data.")
+        println("Please run 'surface_plot_delta.jl' first to generate the data.")
         return 
     end
     
