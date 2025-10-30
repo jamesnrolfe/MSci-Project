@@ -22,16 +22,21 @@ function load_data_and_plot(data_file)
     
     plt = plot(N_values, delta_values, max_bond_dims',
         st=:surface,
-        title="Maximum Bond Dimension vs. (N, Δ)",
+        title="Maximum Bond Dimension χ vs. (N, Δ)",
         xlabel="System Size (N)",
         ylabel="Δ",  
-        zlabel="Maximum Bond Dimension",
-        camera=(50, 30),      
+        zlabel="Maximum Bond Dimension (χ)",
+        camera=(-20, 25),      
         c=cgrad(:inferno),    
-        legend=false
+        legend=false,
+        size=(1200, 800),
+        xgrid=true,
+        ygrid=true,
+        zgrid=true
     )
     
     output_filename = joinpath(@__DIR__, "surface_plot_delta_plot.png")
+    # output_filename = joinpath(@__DIR__, "surface_plot_delta_plot.html")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")
 end
@@ -39,3 +44,4 @@ end
 println("--- Loading and Plotting from File ---")
 load_data_and_plot(filename)
 println("Plotting script finished.\n")
+
