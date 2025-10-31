@@ -3,10 +3,12 @@ using ITensors, ITensorMPS, LinearAlgebra
 using JLD2
 using Base.Threads
 
+Random.seed!(1234);
+
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
     initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L]
-    ψ₀ = randomMPS(sites, initial_state)
+    ψ₀ = MPS(sites, initial_state) 
     return ψ₀, sites
 end
 
@@ -33,7 +35,7 @@ Creates the MPO for the XXZ Hamiltonian on a graph with weighted interactions.
 function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64)
     ampo = OpSum()
     for i in 1:N-1
-        for j in i+1:N
+        for j in (i+1):N 
             coupling_strength = adj_mat[i, j]
             if coupling_strength != 0.0
                 ampo += coupling_strength * (J / 2), "S+", i, "S-", j
@@ -45,21 +47,27 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
-function run_simulation_avg_err()
-    N_range = 10:1:11
-    sigma_values = [0.0, 0.001, 0.002]
-    num_graphs_avg = 10
-    num_sweeps = 30
-    max_bond_dim_limit = 250
-    cutoff = 1E-10
-    μ = 1.0
-
-    results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
-                         err=zeros(Float64, length(N_range))) 
-                   for σ in sigma_values)
+function run_simulation_avg_err(
+    results::Dict,
+    N_range,
+    sigma_values,
+    num_graphs_avg::Int,
+    num_sweeps::Int,
+    max_bond_dim_limit::Int,
+    cutoff::Float64,
+    μ::Float64
+)
+    filename = joinpath(@__DIR__, "avg_err_bd_data.jld2")
+  
+    println("Data will be saved to: $filename")
 
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
+
+        if results[sigma_values[1]].avg[i] != 0.0
+            println("Skipping N = $N, results already loaded/computed.")
+            continue
+        end
         
         for σ in sigma_values
             
@@ -86,17 +94,74 @@ function run_simulation_avg_err()
             results[σ].err[i] = std_dev
         end
         println("Completed N = $N")
+
+        try
+            jldsave(filename; results, N_range, sigma_values)
+            println("Checkpoint saved for N = $N")
+        catch e
+            println("WARNING: Could not save checkpoint for N = $N. Error: $e")
+        end
+
     end
     println("...calculations finished.")
-
-    return results, N_range
+    
 end
 
 
 println("Starting calculations...")
-results, N_range = run_simulation_avg_err();
+
+N_range = 10:1:100
+sigma_values = [0.0, 0.001, 0.002]
+num_graphs_avg = 10
+num_sweeps = 30
+max_bond_dim_limit = 250
+cutoff = 1E-10
+μ = 1.0
 
 filename = joinpath(@__DIR__, "avg_err_bd_data.jld2")
-jldsave(filename; results, N_range)
-println("Data saved successfully.\n")
 
+if isfile(filename)
+    println("Found existing data file. Loading progress...")
+    try
+        # Load data from file
+        loaded_data = jldopen(filename, "r")
+        N_range_loaded = read(loaded_data, "N_range")
+        sigma_values_loaded = read(loaded_data, "sigma_values")
+        
+        if N_range_loaded == N_range && sigma_values_loaded == sigma_values
+            println("Parameters match. Resuming...")
+            global results = read(loaded_data, "results") 
+        else
+            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            global results = Dict(σ => (avg=zeros(Float64, length(N_range)),
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values)
+        end
+        close(loaded_data)
+    catch e
+        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values)
+    end
+else
+    println("No existing data file found. Starting from scratch.")
+    global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                err=zeros(Float64, length(N_range))) 
+                                for σ in sigma_values)
+end
+
+run_simulation_avg_err(
+    results,
+    N_range,
+    sigma_values,
+    num_graphs_avg,
+    num_sweeps,
+    max_bond_dim_limit,
+    cutoff,
+    μ
+)
+
+println("Calculations finished. Final data save...")
+jldsave(filename; results, N_range, sigma_values)
+println("Data saved successfully.\n")

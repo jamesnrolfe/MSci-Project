@@ -49,8 +49,8 @@ end
 
 function run_simulation_sigma()
 
-    N_range = 10:1:11
-    sigma_range = 0.0:0.0001:0.002 
+    N_range = 10:2:100
+    sigma_range = 0.0:0.0002:0.002 
     num_graphs_avg = 10
 
     num_sweeps = 30
@@ -60,8 +60,15 @@ function run_simulation_sigma()
 
     avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range))
 
+    filename = joinpath(@__DIR__, "surface_plot_sigma_data.jld2")
+    println("Data will be saved to: $filename")
+
     for (i, N) in enumerate(N_range)
         
+        if avg_bond_dims[i, 1] != 0.0
+            println("Skipping N = $N, results already loaded/computed.")
+            continue
+        end
 
         Threads.@threads for j in 1:length(sigma_range)
             σ = sigma_range[j] 
@@ -84,15 +91,39 @@ function run_simulation_sigma()
             avg_bond_dims[i, j] = mean(bond_dims_for_avg)
         end
         println("Completed N = $N")
+
+
+        try
+            jldsave(filename; avg_bond_dims, N_range, sigma_range)
+            println("Checkpoint saved for N = $N")
+        catch e
+            println("WARNING: Could not save checkpoint for N = $N. Error: $e")
+        end
+        # ---
     end
 
     return avg_bond_dims, N_range, sigma_range
 end
 
 println("Starting calculations...")
-avg_bond_dims, N_range, sigma_range = run_simulation_sigma();
-println("Calculations finished. Saving data...")
 
 filename = joinpath(@__DIR__, "surface_plot_sigma_data.jld2")
+avg_bond_dims, N_range, sigma_range = if isfile(filename)
+    println("Found existing data file. Loading progress...")
+    try
+        jldopen(filename, "r") do file
+            (file["avg_bond_dims"], file["N_range"], file["sigma_range"])
+        end
+    catch e
+        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        run_simulation_sigma() 
+    end
+else
+    println("No existing data file found. Starting from scratch.")
+    run_simulation_sigma()
+end
+
+
+println("Calculations finished. Final data save...")
 jldsave(filename; avg_bond_dims, N_range, sigma_range)
 println("Data saved successfully.\n")

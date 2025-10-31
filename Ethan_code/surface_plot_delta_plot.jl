@@ -23,16 +23,14 @@ function load_data_and_plot(data_file)
     plt = plot(N_values, delta_values, max_bond_dims',
         st=:surface,
         title="Maximum Bond Dimension χ vs. (N, Δ)",
-        xlabel="System Size (N)",
-        ylabel="Δ",  
-        zlabel="Maximum Bond Dimension (χ)",
-        camera=(-20, 25),      
+        xlabel="System Size N",
+        ylabel="Anisotropy Δ",  
+        zlabel="Max Bond Dimension χ",
+        camera=(-25, 25),      
         c=cgrad(:inferno),    
         legend=false,
-        size=(1200, 800),
-        xgrid=true,
-        ygrid=true,
-        zgrid=true
+        automargin = true,
+        autosize = true,
     )
     
     output_filename = joinpath(@__DIR__, "surface_plot_delta_plot.png")

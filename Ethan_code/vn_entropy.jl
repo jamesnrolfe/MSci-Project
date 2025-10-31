@@ -54,23 +54,21 @@ This is what `ITensors.entropy` does under the hood.
 function calculate_entropy_manual(ψ::MPS, b::Int)
     orthogonalize!(ψ, b)
     
-    T = ψ[b]
-
-
-    l_b_minus_1 = linkind(ψ, b - 1)
-    s_b = siteind(ψ, b)
-
-
-    if isnothing(l_b_minus_1)
-        U, S, V = svd(T, (s_b,))
+    # Check if bond b-1 exists (i.e., if b > 1)
+    if b == 1
+        # We are at the first site, no left bond
+        s_b = siteind(ψ, b)
+        U, S, V = svd(ψ[b], (s_b,))
     else
-        U, S, V = svd(T, (l_b_minus_1, s_b))
+        # We are at site b > 1, so bond b-1 exists
+        l_b_minus_1 = linkind(ψ, b - 1)
+        s_b = siteind(ψ, b)
+        U, S, V = svd(ψ[b], (l_b_minus_1, s_b))
     end
 
     S_ent = 0.0
 
     for n in 1:dim(S, 1)
-    # ---------------------
         p = S[n, n]^2
         if p > 1e-12 
             S_ent -= p * log(p)
@@ -79,25 +77,34 @@ function calculate_entropy_manual(ψ::MPS, b::Int)
     return S_ent
 end
 
-
-function run_entropy_simulation()
-
-    N_range = 10:1:11 
-    sigma_values_to_run = [0.0, 0.002] 
-    num_graphs_avg = 10 
-    
-    num_sweeps = 30
-    max_bond_dim_limit = 250
-    cutoff = 1E-10
-    μ = 1.0
-    J_coupling = -0.5
-    Delta_coupling = 0.5 
-
-    results = Dict{Float64, Vector{Float64}}()
+"""
+MODIFIED: Function now accepts parameters and results dictionary.
+"""
+function run_entropy_simulation(
+    entropy_results::Dict{Float64, Vector{Float64}},
+    N_range,
+    sigma_values_to_run,
+    num_graphs_avg::Int,
+    num_sweeps::Int,
+    max_bond_dim_limit::Int,
+    cutoff::Float64,
+    μ::Float64,
+    J_coupling::Float64,
+    Delta_coupling::Float64
+)
 
     println("Starting entropy simulations...")
+    filename_entropy = joinpath(@__DIR__, "vn_entropy_data.jld2")
 
     for σ in sigma_values_to_run
+        
+        # --- ADDED: Skip logic ---
+        if haskey(entropy_results, σ)
+            println("Skipping σ = $σ, results already loaded/computed.")
+            continue
+        end
+        # ---
+        
         println("Running for σ = $σ")
         
         entropies_for_N = zeros(Float64, length(N_range))
@@ -122,8 +129,6 @@ function run_entropy_simulation()
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
 
-
-                # S = ITensors.entropy(ψ_gs, b)
                 S = calculate_entropy_manual(ψ_gs, b)
 
                 entropies_for_avg[run] = S
@@ -132,25 +137,88 @@ function run_entropy_simulation()
             avg_entropy = mean(entropies_for_avg)
             entropies_for_N[i] = avg_entropy 
             
-            println("  Completed N = $N (Avg. Entropy = $avg_entropy)")
+            println("  Completed N = $N for σ = $σ (Avg. Entropy = $avg_entropy)")
         end
 
-        results[σ] = entropies_for_N
+        entropy_results[σ] = entropies_for_N
+        
+        # --- ADDED: Checkpointing after each sigma ---
+        try
+            jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
+            println("Checkpoint saved for σ = $σ")
+        catch e
+            println("WARNING: Could not save checkpoint for σ = $σ. Error: $e")
+        end
+        # ---
     end
 
     println("Simulations finished.")
-    return results, N_range
+    # No return needed, modifies entropy_results in-place
 end
 
 
-
+"""
+MODIFIED: Main function to handle parameters, loading, and checkpointing.
+"""
 function main()
     println("Starting calculations...")
-    entropy_results, N_range_used = run_entropy_simulation()
 
-    println("Calculations finished. Saving data...")
+    # --- Parameters moved here ---
+    N_range = 10:1:11 
+    sigma_values_to_run = [0.0, 0.002] 
+    num_graphs_avg = 10 
+    
+    num_sweeps = 30
+    max_bond_dim_limit = 250
+    cutoff = 1E-10
+    μ = 1.0
+    J_coupling = -0.5
+    Delta_coupling = 0.5 
+    
     filename_entropy = joinpath(@__DIR__, "vn_entropy_data.jld2")
-    jldsave(filename_entropy; entropy_results, N_range_used)
+    local entropy_results # Ensure scope
+
+    # --- ADDED: Load and resume logic ---
+    if isfile(filename_entropy)
+        println("Found existing data file. Loading progress...")
+        try
+            loaded_data = jldopen(filename_entropy, "r")
+            N_range_loaded = read(loaded_data, "N_range_used")
+            sigma_values_loaded = read(loaded_data, "sigma_values_used")
+
+            if N_range_loaded == N_range && sigma_values_loaded == sigma_values_to_run
+                println("Parameters match. Resuming...")
+                entropy_results = read(loaded_data, "entropy_results")
+            else
+                println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+                entropy_results = Dict{Float64, Vector{Float64}}()
+            end
+            close(loaded_data)
+        catch e
+            println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+            entropy_results = Dict{Float64, Vector{Float64}}()
+        end
+    else
+        println("No existing data file found. Starting from scratch.")
+        entropy_results = Dict{Float64, Vector{Float64}}()
+    end
+    # ---
+
+    run_entropy_simulation(
+        entropy_results,
+        N_range,
+        sigma_values_to_run,
+        num_graphs_avg,
+        num_sweeps,
+        max_bond_dim_limit,
+        cutoff,
+        μ,
+        J_coupling,
+        Delta_coupling
+    )
+
+    println("Calculations finished. Final data save...")
+    jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
     println("Data saved successfully.\n")
 end
 
