@@ -20,13 +20,13 @@ function load_data_and_plot(data_file)
 
     plotlyjs() 
     
-    plt = plot(N_values, sigma_values, avg_bond_dims',
+    plt = plot(N_values[1:66], sigma_values, avg_bond_dims[1:66, :],
         st=:surface,
         title="Average Bond Dimension vs. (N, σ)",
         xlabel="System Size (N)",
         ylabel="σ",
         zlabel="Avg. Max Bond Dimension",
-        camera=(50, 30),
+        camera=(0, 30),
         c=cgrad(:inferno),
         legend=false
     )

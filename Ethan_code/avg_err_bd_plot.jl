@@ -26,12 +26,12 @@ function load_data_and_plot(data_file)
         title="Average Bond Dimension vs. System Size",
         xlabel="System Size (N)",
         ylabel="Avg. Max Bond Dimension",
-        legend=:topleft
+        legend=:bottomright
     )
 
     for σ in sigma_values
 
-        plot!(plt, N_values, results_data[σ].avg,
+        plot!(plt, N_values[1:66], results_data[σ].avg[1:66],
             yerror=results_data[σ].err,  
             label="σ = $σ",
             lw=1.5,
