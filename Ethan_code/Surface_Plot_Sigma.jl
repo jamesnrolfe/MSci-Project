@@ -47,18 +47,16 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
-function run_simulation_sigma()
-
-    N_range = 10:2:100
-    sigma_range = 0.0:0.0002:0.002 
-    num_graphs_avg = 10
-
-    num_sweeps = 30
-    max_bond_dim_limit = 250
-    cutoff = 1E-10
-    μ = 1.0
-
-    avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range))
+function run_simulation_sigma(
+    avg_bond_dims::Matrix{Float64}, 
+    N_range, 
+    sigma_range,
+    num_graphs_avg::Int,
+    num_sweeps::Int,
+    max_bond_dim_limit::Int,
+    cutoff::Float64,
+    μ::Float64
+)
 
     filename = joinpath(@__DIR__, "surface_plot_sigma_data.jld2")
     println("Data will be saved to: $filename")
@@ -99,31 +97,62 @@ function run_simulation_sigma()
         catch e
             println("WARNING: Could not save checkpoint for N = $N. Error: $e")
         end
-        # ---
     end
 
-    return avg_bond_dims, N_range, sigma_range
+    println("...calculations finished.")
 end
 
 println("Starting calculations...")
 
+N_range = 10:1:100
+sigma_range = 0.0:0.0002:0.002 
+num_graphs_avg = 10
+num_sweeps = 30
+max_bond_dim_limit = 250
+cutoff = 1E-10
+μ = 1.0
+
 filename = joinpath(@__DIR__, "surface_plot_sigma_data.jld2")
-avg_bond_dims, N_range, sigma_range = if isfile(filename)
+
+
+if isfile(filename)
     println("Found existing data file. Loading progress...")
     try
-        jldopen(filename, "r") do file
-            (file["avg_bond_dims"], file["N_range"], file["sigma_range"])
+        loaded_data = jldopen(filename, "r")
+        N_range_loaded = read(loaded_data, "N_range")
+        sigma_range_loaded = read(loaded_data, "sigma_range")
+
+        # Check if parameters match
+        if N_range_loaded == N_range && sigma_range_loaded == sigma_range
+            println("Parameters match. Resuming...")
+            global avg_bond_dims = read(loaded_data, "avg_bond_dims") 
+        else
+            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
         end
+        close(loaded_data)
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        run_simulation_sigma() 
+        global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
     end
 else
     println("No existing data file found. Starting from scratch.")
-    run_simulation_sigma()
+    global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
 end
 
+
+run_simulation_sigma(
+    avg_bond_dims,
+    N_range,
+    sigma_range,
+    num_graphs_avg,
+    num_sweeps,
+    max_bond_dim_limit,
+    cutoff,
+    μ
+)
 
 println("Calculations finished. Final data save...")
 jldsave(filename; avg_bond_dims, N_range, sigma_range)
 println("Data saved successfully.\n")
+

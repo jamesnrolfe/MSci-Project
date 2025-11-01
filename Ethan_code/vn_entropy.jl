@@ -163,8 +163,7 @@ MODIFIED: Main function to handle parameters, loading, and checkpointing.
 function main()
     println("Starting calculations...")
 
-    # --- Parameters moved here ---
-    N_range = 10:1:11 
+    N_range = 10:1:100 
     sigma_values_to_run = [0.0, 0.002] 
     num_graphs_avg = 10 
     
@@ -176,9 +175,8 @@ function main()
     Delta_coupling = 0.5 
     
     filename_entropy = joinpath(@__DIR__, "vn_entropy_data.jld2")
-    local entropy_results # Ensure scope
+    local entropy_results 
 
-    # --- ADDED: Load and resume logic ---
     if isfile(filename_entropy)
         println("Found existing data file. Loading progress...")
         try
@@ -202,7 +200,6 @@ function main()
         println("No existing data file found. Starting from scratch.")
         entropy_results = Dict{Float64, Vector{Float64}}()
     end
-    # ---
 
     run_entropy_simulation(
         entropy_results,

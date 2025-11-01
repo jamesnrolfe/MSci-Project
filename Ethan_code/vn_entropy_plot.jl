@@ -5,7 +5,7 @@ function plot_entropy_linear(N_range, results)
     plotlyjs() 
     N_values = collect(N_range)
 
-    plt = plot(title="Average Von Neumann Entropy (Linear Scale)",
+    plt = plot(title="Average Von Neumann Entropy",
                xlabel="Number of Nodes (N)",
                ylabel="Average Entropy",
                legend=:topleft,
