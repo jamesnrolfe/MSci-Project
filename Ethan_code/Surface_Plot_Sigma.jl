@@ -76,7 +76,7 @@ function run_simulation_sigma(
             for k in 1:num_graphs_avg
                 ψ₀, sites = create_MPS(N)
                 adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
-                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-0.5, Δ=0.5)
+                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-1.0, Δ=-1.0)
 
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
@@ -112,7 +112,7 @@ max_bond_dim_limit = 250
 cutoff = 1E-10
 μ = 1.0
 
-filename = joinpath(@__DIR__, "surface_plot_sigma_data.jld2")
+filename = joinpath(@__DIR__, "surface_plot_sigma_data(-1.0)(-1.0).jld2")
 
 
 if isfile(filename)
