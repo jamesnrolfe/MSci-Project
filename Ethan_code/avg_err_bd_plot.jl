@@ -1,6 +1,6 @@
 using JLD2, Plots
 
-filename = joinpath(@__DIR__, "avg_err_bd_data.jld2")
+filename = joinpath(@__DIR__, "avg_err_bd_data(-0.5)(0.5).jld2")
 
 function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
@@ -41,7 +41,7 @@ function load_data_and_plot(data_file)
         )
     end
     
-    output_filename = joinpath(@__DIR__, "avg_err_bd_plot.png")
+    output_filename = joinpath(@__DIR__, "avg_err_bd_plot(-0.5)(0.5).png")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")
 end

@@ -76,7 +76,7 @@ function run_simulation_avg_err(
             for k in 1:num_graphs_avg
                 ψ₀, sites = create_MPS(N)
                 adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
-                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-0.5, Δ=0.5)
+                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-1, Δ=-1)
 
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
@@ -123,7 +123,6 @@ filename = joinpath(@__DIR__, "avg_err_bd_data.jld2")
 if isfile(filename)
     println("Found existing data file. Loading progress...")
     try
-        # Load data from file
         loaded_data = jldopen(filename, "r")
         N_range_loaded = read(loaded_data, "N_range")
         sigma_values_loaded = read(loaded_data, "sigma_values")

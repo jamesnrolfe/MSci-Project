@@ -20,7 +20,8 @@ function load_data_and_plot(data_file)
 
     plotlyjs() 
     
-    plt = plot(N_values[1:66], sigma_values, avg_bond_dims[1:66, :],
+
+    plt = plot(N_values[1:56], sigma_values, avg_bond_dims'[:, 1:56],
         st=:surface,
         title="Average Bond Dimension vs. (N, σ)",
         xlabel="System Size (N)",
@@ -30,7 +31,7 @@ function load_data_and_plot(data_file)
         c=cgrad(:inferno),
         legend=false
     )
-    
+     
     output_filename = joinpath(@__DIR__, "surface_plot_sigma_plot.png")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")

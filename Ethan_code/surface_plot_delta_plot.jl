@@ -1,6 +1,6 @@
 using JLD2, Plots, Colors
 
-filename = joinpath(@__DIR__, "surface_plot_delta_data.jld2")
+filename = joinpath(@__DIR__, "surface_plot_delta_data(-0.5)(0.5).jld2")
 
 function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
@@ -33,8 +33,8 @@ function load_data_and_plot(data_file)
         autosize = true,
     )
     
-    output_filename = joinpath(@__DIR__, "surface_plot_delta_plot.png")
-    # output_filename = joinpath(@__DIR__, "surface_plot_delta_plot.html")
+    output_filename = joinpath(@__DIR__, "surface_plot_delta_plot(-0.5)(0.5).png")
+    # output_filename = joinpath(@__DIR__, "surface_plot_delta_plot(-0.5)(0.5).html")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")
 end
