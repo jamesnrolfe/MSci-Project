@@ -73,8 +73,8 @@ function create_xxz_hamiltonian_mpo(N, adj_mat, J, Δ, sites)
             if weight != 0.0
                 # XX and YY terms: S+S- + S-S+ = 2(SxSx + SySy)
                 # So to get J(SxSx + SySy), we need J/2 * (S+S- + S-S+)
-                ampo += -weight * J/2, "S+", i, "S-", j
-                ampo += -weight * J/2, "S-", i, "S+", j
+                ampo += weight * J/2, "S+", i, "S-", j
+                ampo += weight * J/2, "S-", i, "S+", j
                 # ZZ term
                 ampo += weight * J * Δ, "Sz", i, "Sz", j
             end
