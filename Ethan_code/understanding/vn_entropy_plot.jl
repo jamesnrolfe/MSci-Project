@@ -1,6 +1,5 @@
 using JLD2, Plots, Colors
 
-
 function plot_entropy_linear(N_range, results)
     plotlyjs() 
     N_values = collect(N_range)
@@ -23,8 +22,13 @@ function plot_entropy_linear(N_range, results)
             println("Warning (Linear Plot): Mismatch in lengths for σ=$σ.")
         end
 
-        scatter!(plt, N_values, entropy_values, label=label_str, color=color, markersize=4)
-        plot!(plt, N_values, entropy_values, label="", color=color, linewidth=1.5)
+
+        plot!(plt, N_values, entropy_values, 
+              label=label_str, 
+              color=color, 
+              linewidth=1.5,
+              marker=:circle,  
+              markersize=4)    
     end
     return plt
 end
@@ -53,8 +57,12 @@ function plot_entropy_logscale(N_range, results)
             println("Warning (Log Plot): Mismatch in lengths for σ=$σ.")
         end
 
-        scatter!(plt, N_log_values, entropy_values, label=label_str, color=color, markersize=4)
-        plot!(plt, N_log_values, entropy_values, label="", color=color, linewidth=1.5)
+        plot!(plt, N_log_values, entropy_values, 
+              label=label_str, 
+              color=color, 
+              linewidth=1.5,
+              marker=:circle, 
+              markersize=4)   
     end
     
     xticks_vals = [log2(v) for v in [16, 32, 64]] 

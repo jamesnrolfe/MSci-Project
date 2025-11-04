@@ -2,7 +2,7 @@ using JLD2, Plots, Colors
 
 gr() 
 
-filename = joinpath(@__DIR__, "surface_plot_sigma_data(-0.5)(0.5).jld2")
+filename = joinpath(@__DIR__, "surface_plot_sigma_data(-1.0)(-1.0).jld2")
 
 function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
@@ -20,7 +20,9 @@ function load_data_and_plot(data_file)
     N_values = collect(N_range)
     sigma_values = collect(sigma_range)
 
-    plt = plot(N_values[1:56], sigma_values, avg_bond_dims'[:, 1:56],
+    N_slice = 1:91
+    
+    plt = plot(N_values[N_slice], sigma_values, avg_bond_dims'[:, N_slice],
         st=:surface,
         title="Average Bond Dimension vs. (N, σ)",
         xlabel="System Size (N)",
@@ -36,7 +38,7 @@ function load_data_and_plot(data_file)
         dpi=300        
     )
      
-    output_filename = joinpath(@__DIR__, "surface_plot_sigma_plot(-0.5)(0.5).png")
+    output_filename = joinpath(@__DIR__, "surface_plot_sigma_plot(-1.0)(-1.0).png")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")
 end

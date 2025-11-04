@@ -54,13 +54,10 @@ This is what `ITensors.entropy` does under the hood.
 function calculate_entropy_manual(ψ::MPS, b::Int)
     orthogonalize!(ψ, b)
     
-    # Check if bond b-1 exists (i.e., if b > 1)
     if b == 1
-        # We are at the first site, no left bond
         s_b = siteind(ψ, b)
         U, S, V = svd(ψ[b], (s_b,))
     else
-        # We are at site b > 1, so bond b-1 exists
         l_b_minus_1 = linkind(ψ, b - 1)
         s_b = siteind(ψ, b)
         U, S, V = svd(ψ[b], (l_b_minus_1, s_b))
@@ -94,16 +91,14 @@ function run_entropy_simulation(
 )
 
     println("Starting entropy simulations...")
-    filename_entropy = joinpath(@__DIR__, "vn_entropy_data.jld2")
+    filename_entropy = joinpath(@__DIR__, "vn_entropy_data(-1.0)(-1.0).jld2")
 
     for σ in sigma_values_to_run
         
-        # --- ADDED: Skip logic ---
         if haskey(entropy_results, σ)
             println("Skipping σ = $σ, results already loaded/computed.")
             continue
         end
-        # ---
         
         println("Running for σ = $σ")
         
@@ -142,18 +137,15 @@ function run_entropy_simulation(
 
         entropy_results[σ] = entropies_for_N
         
-        # --- ADDED: Checkpointing after each sigma ---
         try
             jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
             println("Checkpoint saved for σ = $σ")
         catch e
             println("WARNING: Could not save checkpoint for σ = $σ. Error: $e")
         end
-        # ---
     end
 
     println("Simulations finished.")
-    # No return needed, modifies entropy_results in-place
 end
 
 
@@ -171,10 +163,10 @@ function main()
     max_bond_dim_limit = 250
     cutoff = 1E-10
     μ = 1.0
-    J_coupling = -0.5
-    Delta_coupling = 0.5 
+    J_coupling = -1.0
+    Delta_coupling = -1.0
     
-    filename_entropy = joinpath(@__DIR__, "vn_entropy_data.jld2")
+    filename_entropy = joinpath(@__DIR__, "vn_entropy_data(-1.0)(-1.0).jld2")
     local entropy_results 
 
     if isfile(filename_entropy)
