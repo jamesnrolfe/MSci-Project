@@ -5,12 +5,10 @@ using Base.Threads
 
 Random.seed!(1234);
 
-# ---
-# MARK: MPO and MPS Creation Functions (from user files)
-# ---
+
 
 """
-[cite: 106-107]
+[cite_start][cite: 1016-1017]
 """
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
@@ -21,7 +19,7 @@ end
 
 """
 Creates a weighted adjacency matrix for a completely connected graph.
-[cite: 107-108]
+[cite_start][cite: 1017-1018]
 """
 function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     if σ == 0.0
@@ -39,7 +37,7 @@ end
 
 """
 Creates the MPO for the XXZ Hamiltonian on a dense graph.
-[cite: 108-110]
+[cite_start][cite: 1018-1020]
 """
 function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64)
     ampo = OpSum()
@@ -78,15 +76,12 @@ function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ:
 end
 
 
-# ---
-# MARK: Simulation Runners
-# ---
 
 """
-Runs Model A: Dense Disordered Graph.
-Structure mirrors avg_err_bd.jl 
+Runs Connected Model: Dense Disordered Graph.
+[cite_start]Structure mirrors avg_err_bd.jl [cite: 1020-1026]
 """
-function run_model_A_dense(
+function run_connected_model(
     results::Dict,
     N_range,
     sigma_values,
@@ -99,14 +94,14 @@ function run_model_A_dense(
     Δ::Float64,
     filename::String
 )
-    println("--- 🔬 Starting Model A: Dense Disordered Graph ---")
+    println("--- 🔬 Starting Connected Model: Dense Disordered Graph ---")
     
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
 
         # Check if this N is already done
         if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Model A: Skipping N = $N, results already loaded.")
+            println("Connected Model: Skipping N = $N, results already loaded.")
             continue
         end
         
@@ -124,7 +119,7 @@ function run_model_A_dense(
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
                 setcutoff!(sweeps, cutoff)
-                # Add noise as in the entropy script [cite: 135-136]
+                # [cite_start]Add noise as in the entropy script [cite: 14-15]
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
@@ -137,7 +132,7 @@ function run_model_A_dense(
             results[σ].avg[i] = avg_dim
             results[σ].err[i] = std_dev
         end
-        println("Model A: Completed N = $N")
+        println("Connected Model: Completed N = $N")
 
         # Save checkpoint (inside N loop, as in user file)
         try
@@ -145,26 +140,26 @@ function run_model_A_dense(
             lock(jld_lock) do
                 # Re-open file to save *all* results, not just this thread's
                 jldopen(filename, "r+") do file
-                    if haskey(file, "results_dense")
-                        delete!(file, "results_dense")
+                    if haskey(file, "results_connected")
+                        delete!(file, "results_connected")
                     end
-                    file["results_dense"] = results
+                    file["results_connected"] = results
                 end
             end
-            println("Model A: Checkpoint saved for N = $N")
+            println("Connected Model: Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Model A: Could not save checkpoint for N = $N. Error: $e")
+            println("WARNING: Connected Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("--- ✅ Model A: Finished ---")
+    println("--- ✅ Connected Model: Finished ---")
 end
 
 
 """
-Runs Model B: 1D Disordered Chain.
-Structure mirrors avg_err_bd.jl 
+Runs Linear Model: 1D Disordered Chain.
+[cite_start]Structure mirrors avg_err_bd.jl [cite: 1020-1026]
 """
-function run_model_B_1d(
+function run_linear_model(
     results::Dict,
     N_range,
     sigma_values,
@@ -177,14 +172,14 @@ function run_model_B_1d(
     Δ::Float64,
     filename::String
 )
-    println("--- 🔬 Starting Model B: 1D Disordered Chain ---")
+    println("--- 🔬 Starting Linear Model: 1D Disordered Chain ---")
     
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
 
         # Check if this N is already done
         if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Model B: Skipping N = $N, results already loaded.")
+            println("Linear Model: Skipping N = $N, results already loaded.")
             continue
         end
         
@@ -213,36 +208,32 @@ function run_model_B_1d(
             results[σ].avg[i] = avg_dim
             results[σ].err[i] = std_dev
         end
-        println("Model B: Completed N = $N")
+        println("Linear Model: Completed N = $N")
 
         # Save checkpoint (inside N loop)
         try
             # Must lock to prevent race condition on file write
             lock(jld_lock) do
                 jldopen(filename, "r+") do file
-                    if haskey(file, "results_1d")
-                        delete!(file, "results_1d")
+                    if haskey(file, "results_linear")
+                        delete!(file, "results_linear")
                     end
-                    file["results_1d"] = results
+                    file["results_linear"] = results
                 end
             end
-            println("Model B: Checkpoint saved for N = $N")
+            println("Linear Model: Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Model B: Could not save checkpoint for N = $N. Error: $e")
+            println("WARNING: Linear Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("--- ✅ Model B: Finished ---")
+    println("--- ✅ Linear Model: Finished ---")
 end
 
 
-# ---
-# MARK: Main Execution
-# ---
 
 println("Starting calculations...")
 
-# --- Global Parameters ---
-N_range = 10:1:75  # Reduced N_range for faster test
+N_range = 10:1:100
 sigma_values = [0.0, 0.001, 0.002]
 num_graphs_avg = 10
 num_sweeps = 30
@@ -250,29 +241,25 @@ max_bond_dim_limit = 250
 cutoff = 1E-10
 μ = 1.0
 
-# J and Δ from the report's entropy script 
 J_coupling = -0.5
 Delta_coupling = 0.5
 
-filename = joinpath(@__DIR__, "comparative_spike_analysis.jld2")
+filename = joinpath(@__DIR__, "lin_con_comparison_data.jld2")
 println("Data file: $filename\n")
 
-# A lock for thread-safe file writing
 global jld_lock = ReentrantLock()
 
-# Helper function to initialize the results dictionaries
 init_results_dict() = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
                                   for σ in sigma_values)
 
-# --- Load or Initialize Results ---
-# This logic mirrors avg_err_bd.jl 
-local results_dense, results_1d
+
+local results_connected, results_linear
 
 if isfile(filename)
     println("Found existing data file. Loading progress...")
     try
-        global results_dense, results_1d
+        global results_connected, results_linear
         
         jldopen(filename, "r") do file
             N_range_loaded = read(file, "N_range")
@@ -280,37 +267,35 @@ if isfile(filename)
 
             if N_range_loaded == N_range && sigma_values_loaded == sigma_values
                 println("Parameters match. Resuming...")
-                results_dense = read(file, "results_dense")
-                results_1d = read(file, "results_1d")
+                results_connected = read(file, "results_connected")
+                results_linear = read(file, "results_linear")
             else
                 println("WARNING: Parameters in file do not match. Starting from scratch.")
-                results_dense = init_results_dict()
-                results_1d = init_results_dict()
+                results_connected = init_results_dict()
+                results_linear = init_results_dict()
             end
         end
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        global results_dense = init_results_dict()
-        global results_1d = init_results_dict()
+        global results_connected = init_results_dict()
+        global results_linear = init_results_dict()
     end
 else
     println("No existing data file found. Starting from scratch.")
-    global results_dense = init_results_dict()
-    global results_1d = init_results_dict()
+    global results_connected = init_results_dict()
+    global results_linear = init_results_dict()
     
-    # Create the file so threads can open it with "r+"
     jldsave(filename; 
-        results_dense, 
-        results_1d, 
+        results_connected, 
+        results_linear, 
         N_range, 
         sigma_values
     )
 end
 
 
-# --- Run Simulations ---
-run_model_A_dense(
-    results_dense,
+run_connected_model(
+    results_connected,
     N_range,
     sigma_values,
     num_graphs_avg,
@@ -323,8 +308,8 @@ run_model_A_dense(
     filename
 )
 
-run_model_B_1d(
-    results_1d,
+run_linear_model(
+    results_linear,
     N_range,
     sigma_values,
     num_graphs_avg,
@@ -338,10 +323,9 @@ run_model_B_1d(
 )
 
 println("Calculations finished. Final data save...")
-# Save everything one last time [cite: 122]
 jldsave(filename; 
-    results_dense, 
-    results_1d, 
+    results_connected, 
+    results_linear, 
     N_range, 
     sigma_values
 )
