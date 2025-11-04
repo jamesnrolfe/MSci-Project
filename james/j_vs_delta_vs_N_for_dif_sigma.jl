@@ -1,17 +1,21 @@
 using ProgressMeter
+using Random
+using Statistics
+using ThreadsX
+using JLD2
 
 include("../funcs/adjacency.jl")  
 include("../funcs/mps.jl")  
 include("../funcs/hamiltonian.jl")
 
-J_vals = [-1.0, -0.5, 0.5, 1.0]
-Δ_vals = [-1.0, -0.5, 0.5, 1.0]
-σ_vals = [0.0, 0.001, 0.002]
-N_vals = shuffle(10:2:100) # number of nodes to test
+J_vals = [-1.0, 1.0]
+Δ_vals = [-1.0, 1.0]
+σ_vals = [0.0, 0.002]
+N_vals = shuffle(10:2:75) # number of nodes to test
 # do them in a random order to make eta for progress meter more accurate - larger N take longer
 
-MAX_BOND_DIM = 1000
-NUM_GRAPHS_TO_AVG = 5
+MAX_BOND_DIM = 500
+NUM_GRAPHS_TO_AVG = 3
 NUM_SWEEPS = 30
 
 
@@ -43,23 +47,68 @@ end
 
 
 function main()
-
-    data = Dict{Tuple{Float64, Float64, Int64, Float64}, Any}() # to store results
-    # should be stored in the form data[(J, Δ, N, σ)] = result
-
-    for J in J_vals
-        for Δ in Δ_vals
-            progress_meter = Progress(length(N_vals) * length(σ_vals), show_eta=true, desc="J=$J, Δ=$Δ")
-            for N in N_vals
-                for σ in σ_vals
-                    # Run the simulation and store the result
-                    result, error = run_simulation(J, Δ, N, σ)
-                    data[(J, Δ, N, σ)] = (result, error)
-                    next!(progress_meter)
-                end
+    # Try to load existing data
+    datafile = "james/j_vs_delta_vs_N_data.jld2"
+    data = Dict{Tuple{Float64, Float64, Int64, Float64}, Any}()
+    if isfile(datafile)
+        try
+            loaded = JLD2.load(datafile, "data")
+            if loaded isa Dict
+                data = loaded
+                println("Loaded existing data with $(length(data)) entries.")
             end
+        catch e
+            println("Could not load existing data: $e")
         end
     end
+
+    num_completed = Threads.Atomic{Int}(length(data))
+    total_runs = length(J_vals) * length(Δ_vals) * length(N_vals) * length(σ_vals)
+    avg_time_per_run = Threads.Atomic{Float64}(0.0)
+
+    println("Starting simulations...")
+    println("Total runs to complete: $total_runs - $(num_completed[]) already completed.")
+
+    N_results = Vector{Any}(undef, length(N_vals))
+    shuffled_N_indices = shuffle(1:length(N_vals))
+
+    for J in J_vals, Δ in Δ_vals
+        println("\nRunning simulations for J=$J, Δ=$Δ")
+        Threads.@threads for i in 1:length(N_vals)
+            n_idx = shuffled_N_indices[i]
+            N = N_vals[n_idx]
+            N_data = Dict{Float64, Tuple{Float64, Float64}}()
+            for σ in σ_vals
+                key = (J, Δ, N, σ)
+                if haskey(data, key)
+                    println("Skipping J=$J, Δ=$Δ, N=$N, σ=$σ (already computed)")
+                    continue
+                end
+                timer_start = time()
+                result, error = run_simulation(J, Δ, N, σ)
+                timer_end = time()
+                N_data[σ] = (result, error)
+                data[key] = (result, error)
+                Threads.atomic_add!(num_completed, 1)
+                avg_time_per_run[] = ((avg_time_per_run[] * (num_completed[] - 1)) + (timer_end - timer_start)) / num_completed[]
+                est_time_remaining = avg_time_per_run[] * (total_runs - num_completed[])
+                est_time_remaining_hrs = est_time_remaining / 3600
+                println("J=$J, Δ=$Δ, N=$N, σ=$σ: $result ± $error")
+                println("       -> Time taken: $(timer_end - timer_start) seconds")
+                println("       -> Estimated time remaining: $(round(est_time_remaining_hrs, digits=2)) hours")
+                # Save after each new result
+                try
+                    JLD2.jldsave(datafile; data)
+                catch e
+                    println("Error saving data: $e")
+                end
+            end
+            N_results[n_idx] = (J, Δ, N, N_data)
+        end
+    end
+
+    println("Simulations complete.")
+    println("Data saved to $datafile")
 end
 
 main()
