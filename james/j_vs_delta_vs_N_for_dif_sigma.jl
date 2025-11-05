@@ -257,4 +257,53 @@ function plot_3d_surfaces(sigma; N_vals_to_plot=nothing)
     end
     display(plt)
 end
-plot_3d_surfaces(0.002; N_vals_to_plot=[10, 20, 30, 40, 50, 60, 70])
+# plot_3d_surfaces(0.002; N_vals_to_plot=[10, 20, 30, 40, 50, 60, 70])
+
+
+function plot_delta_vs_N_vs_bond_dim(sigma; J_vals_to_plot=nothing, N_vals_to_plot=nothing)
+    datafile = "james/j_vs_delta_vs_N_data.jld2"
+    data = jldopen(datafile, "r") do file
+        read(file, "data")
+    end
+
+    keys_sorted_by_N = sort(collect(keys(data)), by=x -> x[3])  # Convert keys to an array before sorting
+
+    Js = [key[1] for key in keys_sorted_by_N if key[4] == sigma]  # Extract J values
+    Deltas = [key[2] for key in keys_sorted_by_N if key[4] == sigma]  # Extract Δ values
+    Ns = [key[3] for key in keys_sorted_by_N if key[4] == sigma]  # Extract N values
+
+    if J_vals_to_plot === nothing
+        J_vals_to_plot = Js
+    end
+    if N_vals_to_plot === nothing
+        N_vals_to_plot = Ns
+    end
+
+    colors = [:red, :blue, :green, :orange, :purple, :brown, :pink, :gray, :black, :cyan]
+
+    for J in J_vals_to_plot
+        plt = plot3d(title="Δ vs N vs Bond Dim for J=$J, σ=$sigma", xlabel="Δ", ylabel="N", zlabel="Bond Dim")
+
+        z = fill(NaN, length(N_vals_to_plot), length(Deltas))  # Initialize z as a matrix
+        for (k, N) in enumerate(N_vals_to_plot)
+            for (i, Δ) in enumerate(Deltas)
+                key = (J, Δ, N, sigma)
+                if haskey(data, key)
+                    z[k, i] = data[key][1]  # bond_dim
+                end
+            end
+        end
+        # Replace NaN values with 0.0
+        z = replace(z, NaN => 0.0)
+        println("Surface for J=$J: ", z)
+        if all(isnan, z)
+            println("Skipping J=$J as all values are NaN.")
+            continue
+        end
+        surface!(plt, Deltas, N_vals_to_plot, z, color=:viridis, alpha=0.7)
+        display(plt)
+    end
+end
+
+# Example usage:
+plot_delta_vs_N_vs_bond_dim(0.002; J_vals_to_plot=[-1.0, 1.0])
