@@ -182,7 +182,6 @@ else
     # Use 'global' to assign to the variable in the global scope
     global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
 end
-# --- END OF FIX ---
 
 
 run_simulation_ent_spec(
@@ -199,7 +198,6 @@ run_simulation_ent_spec(
 )
 
 println("Calculations finished. Final data save...")
-# Save all parameters to avoid confusion in the future
 jldsave(filename;
     entanglement_spectrum_results, 
     N_values, 

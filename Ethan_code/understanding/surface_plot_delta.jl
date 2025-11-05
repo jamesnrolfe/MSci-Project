@@ -1,5 +1,6 @@
 using Random
 using ITensors, ITensorMPS, LinearAlgebra
+using Statistics
 using JLD2
 using Base.Threads  
 
