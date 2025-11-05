@@ -77,7 +77,7 @@ end
 
 
 function load_and_generate_plots()
-    filename = joinpath(@__DIR__, "vn_entropy_data(-0.5)(0.5).jld2")
+    filename = joinpath(@__DIR__, "vn_entropy_data(-1.0)(-1.0).jld2")
     println("Loading data from $filename...")
 
     if !isfile(filename)
@@ -92,13 +92,13 @@ function load_and_generate_plots()
 
     println("Generating linear plot...")
     plt_linear = plot_entropy_linear(N_range_used, entropy_results)
-    output_linear = joinpath(@__DIR__, "vn_entropy_plot_lin(-0.5)(0.5).png")
+    output_linear = joinpath(@__DIR__, "vn_entropy_plot_lin(-1.0)(-1.0).png")
     savefig(plt_linear, output_linear)
     println("Saved linear plot to $output_linear")
 
     println("Generating log scale plot...")
     plt_log = plot_entropy_logscale(N_range_used, entropy_results)
-    output_log = joinpath(@__DIR__, "vn_entropy_plot_log(-0.5)(0.5).png")
+    output_log = joinpath(@__DIR__, "vn_entropy_plot_log(-1.0)(-1.0).png")
     savefig(plt_log, output_log)
     println("Saved log scale plot to $output_log")
 end
