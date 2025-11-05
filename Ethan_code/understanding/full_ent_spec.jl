@@ -92,7 +92,7 @@ function run_simulation_ent_spec(
     J_val,
     Δ_val
 )
-    filename = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
+    filename = joinpath(@__DIR__, "full_ent_spec_data_00.jld2")
     println("Data will be saved to: $filename")
 
     for N in N_values
@@ -135,7 +135,7 @@ end
 println("Starting Entanglement Spectrum calculations...")
 
 N_values = [20, 30, 40, 50, 60, 70, 80, 90]
-σ_val = 0.002       
+σ_val = 0.0       
 J_val = -1.0        
 Δ_val = -1.0          
 μ_val = 1.0          
@@ -143,7 +143,7 @@ num_sweeps = 30
 num_graphs_avg = 10  
 max_coeffs_to_store = 35 
 
-filename = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
+filename = joinpath(@__DIR__, "full_ent_spec_data_00.jld2")
 data_lock = SpinLock() 
 
 

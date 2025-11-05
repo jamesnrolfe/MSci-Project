@@ -1,8 +1,8 @@
 using JLD2
 using Plots
 
-data_filename = joinpath(@__DIR__,"full_ent_spec_data_0002.jld2")
-output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0002.png")
+data_filename = joinpath(@__DIR__,"full_ent_spec_data_00.jld2")
+output_filename = joinpath(@__DIR__,"full_ent_spec_plot_00.png")
 
 println("Starting plotting script...")
 println("Loading data from $data_filename...")
