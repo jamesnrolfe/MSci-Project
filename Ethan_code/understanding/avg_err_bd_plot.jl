@@ -1,7 +1,6 @@
 using JLD2, Plots
 
-# --- 1. Use the GR backend ---
-# It's generally better for high-quality, static PNG/PDF files.
+
 gr()
 
 filename = joinpath(@__DIR__, "avg_err_bd_data(-1.0)(-1.0).jld2")
@@ -21,9 +20,8 @@ function load_data_and_plot(data_file)
     N_values = collect(N_range_data)
     sigma_values = [0.0, 0.001, 0.002]
 
-    # --- 2. Define all plot attributes in one place ---
-    # This makes it easy to manage. I've added different marker shapes
-    # to improve accessibility (e.g., for color-blind readers).
+
+
     plot_attrs = Dict(
         0.0 => (
             color = :gold,
@@ -49,7 +47,9 @@ function load_data_and_plot(data_file)
         dpi=300             
     )
     
-    N_slice = 1:90
+    # N_slice = 1:91
+    N_slice = setdiff(1:91, [66, 75])
+    # err at 75th, 66th
 
     for σ in sigma_values
         

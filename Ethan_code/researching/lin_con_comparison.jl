@@ -234,7 +234,7 @@ end
 println("Starting calculations...")
 
 N_range = 10:1:100
-sigma_values = [0.0, 0.001, 0.002]
+sigma_values = [0.0, 0.002]
 num_graphs_avg = 10
 num_sweeps = 30
 max_bond_dim_limit = 250

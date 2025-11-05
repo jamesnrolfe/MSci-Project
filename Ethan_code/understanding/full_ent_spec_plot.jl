@@ -55,7 +55,7 @@ function load_and_plot_spectrum()
                      plot_title="Full Entanglement Spectrum for σ=0.002",
                      size=(1600, 800))
     
-    output_filename = "entanglement_spectrum_plot.png"
+    output_filename = joinpath(@__DIR__, "full_ent_spec_plot.png")
     savefig(main_plot, output_filename)
     println("Plot saved to $output_filename")
 end
