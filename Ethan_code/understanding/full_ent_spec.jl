@@ -24,7 +24,7 @@ function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     end
     A = zeros(Float64, N, N)
     for i in 1:N, j in (i+1):N
-         weight = μ + σ * randn()
+        weight = μ + σ * randn()
         A[i, j] = A[j, i] = weight
     end
     return A
@@ -92,7 +92,7 @@ function run_simulation_ent_spec(
     J_val,
     Δ_val
 )
-    filename = joinpath(@__DIR__, "full_ent_spec_data.jld2")
+    filename = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
     println("Data will be saved to: $filename")
 
     for N in N_values
@@ -104,7 +104,6 @@ function run_simulation_ent_spec(
 
         println("Running for N = $N")
         
-
         N_all_coeffs = zeros(Float64, num_graphs_avg, max_coeffs_to_store)
         
         Threads.@threads for i in 1:num_graphs_avg
@@ -137,22 +136,25 @@ println("Starting Entanglement Spectrum calculations...")
 
 N_values = [20, 30, 40, 50, 60, 70, 80, 90]
 σ_val = 0.002       
-J_val = -0.5         
+J_val = -1.0        
 Δ_val = -1.0          
-μ_val = -1.0          
+μ_val = 1.0          
 num_sweeps = 30     
 num_graphs_avg = 10  
 max_coeffs_to_store = 35 
 
-filename = joinpath(@__DIR__, "full_ent_spec_data.jld2")
+filename = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
 data_lock = SpinLock() 
-local entanglement_spectrum_results 
+
+
+entanglement_spectrum_results = Dict{Int, Vector{Float64}}() 
 
 if isfile(filename)
     println("Found existing data file. Loading progress...")
     try
         loaded_data = jldopen(filename, "r")
         
+        # Check if all key parameters match
         params_match = (
             read(loaded_data, "N_values") == N_values &&
             read(loaded_data, "σ_val") == σ_val &&
@@ -162,20 +164,25 @@ if isfile(filename)
 
         if params_match
             println("Parameters match. Resuming...")
-            entanglement_spectrum_results = read(loaded_data, "entanglement_spectrum_results")
+            # Use 'global' to assign to the variable in the global scope
+            global entanglement_spectrum_results = read(loaded_data, "entanglement_spectrum_results")
         else
             println("WARNING: Parameters in file do not match current script. Starting from scratch.")
-            entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
+            # Use 'global' to assign to the variable in the global scope
+            global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
         end
         close(loaded_data)
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
+        # Use 'global' to assign to the variable in the global scope
+        global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
     end
 else
     println("No existing data file found. Starting from scratch.")
-    entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
+    # Use 'global' to assign to the variable in the global scope
+    global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
 end
+
 
 run_simulation_ent_spec(
     entanglement_spectrum_results,
@@ -191,5 +198,14 @@ run_simulation_ent_spec(
 )
 
 println("Calculations finished. Final data save...")
-jldsave(filename; entanglement_spectrum_results, N_values, σ_val, num_graphs_avg, max_coeffs_to_store)
+jldsave(filename;
+    entanglement_spectrum_results, 
+    N_values, 
+    σ_val, 
+    J_val, 
+    Δ_val, 
+    μ_val, 
+    num_graphs_avg, 
+    max_coeffs_to_store
+)
 println("Data saved successfully.\n")
