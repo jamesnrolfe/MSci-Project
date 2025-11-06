@@ -5,9 +5,9 @@ using ThreadsX
 using JLD2
 using Plots
 
-include("../funcs/adjacency.jl")  
-include("../funcs/mps.jl")  
-include("../funcs/hamiltonian.jl")
+include("../james/funcs/adjacency.jl")  
+include("../james/funcs/mps.jl")  
+include("../james/funcs/hamiltonian.jl")
 
 J_vals = [-1.0, 1.0]
 Δ_vals = [-1.0, 1.0]
@@ -214,7 +214,7 @@ function plot_phase_diagrams(sigma; N_vals_to_plot=nothing)
 end
 
 # Example usage:
-# plot_phase_diagrams(0.002; N_vals_to_plot=[10, 20, 30, 40, 50, 60, 70])
+plot_phase_diagrams(0.002; N_vals_to_plot=[10, 20, 30, 40, 50, 60, 70])
 
 function plot_3d_surfaces(sigma; N_vals_to_plot=nothing)
     datafile = "james/j_vs_delta_vs_N_data.jld2"
@@ -305,5 +305,5 @@ function plot_delta_vs_N_vs_bond_dim(sigma; J_vals_to_plot=nothing, N_vals_to_pl
     end
 end
 
-# Example usage:
-plot_delta_vs_N_vs_bond_dim(0.002; J_vals_to_plot=[-1.0, 1.0])
+# # Example usage:
+# plot_delta_vs_N_vs_bond_dim(0.002; J_vals_to_plot=[-1.0, 1.0])
