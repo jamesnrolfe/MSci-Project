@@ -22,6 +22,7 @@ function plot_concurrence_results(filename::String)
 
     println("Plotting concurrence results...")
     
+    # Initialize the plot
     p1 = plot(
         title = "Star Graph Concurrence vs. System Size",
         xlabel = "System Size (N)",
@@ -38,37 +39,29 @@ function plot_concurrence_results(filename::String)
         avg_concurrence = results[σ].avg
         error_std = results[σ].err
         
-
-        # local marker_shape
-        # if σ == 0.0
-        #     marker_shape = :square
-        # elseif σ == 0.002 
-        #     marker_shape = :circle
-        # else
-        #     marker_shape = :auto 
-        # end
-        
         plot!(
             p1,
             N_range, 
             avg_concurrence, 
-            ribbon = error_std, 
+            ribbon = error_std,  
             label = "σ = $σ", 
-            marker = :square, 
+            marker = :circle,
             markersize = 4
         )
     end 
     
     
-    output_filename = "star_conc_plot.png"
+    # Save the plot
+    output_filename = joinpath(@__DIR__, "star_conc_plot.png")
     savefig(p1, output_filename)
     println("Saved concurrence plot to $output_filename")
-
 end
 
 
+# Define the data file to read from
 data_filename = joinpath(@__DIR__, "star_conc_data.jld2")
 
+# Plot the Concurrence vs. N results
 plot_concurrence_results(data_filename)
 
 println("Plotting script finished.")
