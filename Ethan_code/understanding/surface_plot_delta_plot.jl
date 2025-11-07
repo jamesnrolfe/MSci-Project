@@ -34,7 +34,7 @@ function load_data_and_plot(data_file)
         
         plot_title = "Max Bond Dimension χ vs. (N, Δ) (σ = $sigma)"
          
-        plt = plot(N_values, delta_values, data_slice', # Transpose is needed
+        plt = plot(N_values, -delta_values, data_slice', # Transpose is needed
             st=:surface,
             title=plot_title,
             xlabel="System Size N",

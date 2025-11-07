@@ -1,8 +1,8 @@
 using JLD2
 using Plots
 
-data_filename = joinpath(@__DIR__,"full_ent_spec_data_00.jld2")
-output_filename = joinpath(@__DIR__,"full_ent_spec_plot_00.png")
+data_filename = joinpath(@__DIR__,"full_ent_spec_data_0002.jld2")
+output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0002.png")
 
 println("Starting plotting script...")
 println("Loading data from $data_filename...")
@@ -31,8 +31,8 @@ try
             println("The script will proceed, but the layout may not be as expected.")
         end
 
-        plot_width_px = 2400  # Increased from 2000
-        plot_height_px = 1000 # Kept height the same
+        plot_width_px = 2400  
+        plot_height_px = 1000 
         
         p_layout = plot(
             layout = (2, 4),
@@ -41,7 +41,7 @@ try
             plot_titlefontsize = 20,
             legend = false,
             top_margin = 10Plots.mm,
-            margin = 5Plots.mm      
+            margin = 10Plots.mm      
         )
         
         x_axis_label = "Schmidt Coefficients"

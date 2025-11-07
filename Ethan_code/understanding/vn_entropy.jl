@@ -96,11 +96,11 @@ function run_entropy_simulation(
     for σ in sigma_values_to_run
         
         if haskey(entropy_results, σ)
-            println("Skipping σ = $σ, results already loaded/computed.")
+            println("--- Skipping σ = $σ, results already loaded. ---")
             continue
         end
         
-        println("Running for σ = $σ")
+        println("--- Running for σ = $σ ---")
         
         entropies_for_N = zeros(Float64, length(N_range))
 
@@ -135,17 +135,19 @@ function run_entropy_simulation(
             println("  Completed N = $N for σ = $σ (Avg. Entropy = $avg_entropy)")
         end
 
+        # Add the new results to the dictionary
         entropy_results[σ] = entropies_for_N
         
+        # Save the *entire* results dictionary as a checkpoint
         try
             jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
-            println("Checkpoint saved for σ = $σ")
+            println("--- Checkpoint saved for σ = $σ ---")
         catch e
             println("WARNING: Could not save checkpoint for σ = $σ. Error: $e")
         end
     end
 
-    println("Simulations finished.")
+    println("--- All simulations finished. ---")
 end
 
 
@@ -174,13 +176,22 @@ function main()
         try
             loaded_data = jldopen(filename_entropy, "r")
             N_range_loaded = read(loaded_data, "N_range_used")
-            sigma_values_loaded = read(loaded_data, "sigma_values_used")
-
-            if N_range_loaded == N_range && sigma_values_loaded == sigma_values_to_run
-                println("Parameters match. Resuming...")
+            
+            # --- ROBUST LOADING LOGIC ---
+            # We only check if N_range matches.
+            # This allows us to resume if the script was interrupted.
+            if N_range_loaded == N_range
+                println("N_range matches. Resuming...")
                 entropy_results = read(loaded_data, "entropy_results")
+                
+                # Log what was intended vs. what is actually done
+                sigma_values_loaded = read(loaded_data, "sigma_values_used")
+                println("  > Sigmas intended to run (from file): ", sigma_values_loaded)
+                println("  > Sigmas *actually* completed: ", keys(entropy_results))
+
             else
-                println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+                println("WARNING: N_range in file ($(N_range_loaded)) does not match current script ($(N_range)).")
+                println("Starting from scratch.")
                 entropy_results = Dict{Float64, Vector{Float64}}()
             end
             close(loaded_data)
@@ -212,4 +223,3 @@ function main()
 end
 
 main()
-

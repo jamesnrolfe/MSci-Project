@@ -1,0 +1,153 @@
+using JLD2
+using Plots
+
+# --- File Configuration ---
+data_filename_00 = joinpath(@__DIR__, "full_ent_spec_data_00.jld2")
+data_filename_0002 = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
+output_filename = joinpath(@__DIR__, "full_ent_spec_plot_both.png")
+
+println("Starting combined plotting script...")
+println("This script will overlay plots from two files.")
+
+try
+    # --- Load Data from File 1 (σ=0.0) ---
+    println("Loading data from $data_filename_00...")
+    if !isfile(data_filename_00)
+        println("ERROR: File not found: $data_filename_00")
+        throw(SystemError("File not found", 2))
+    end
+    data_00 = JLD2.load(data_filename_00)
+    results_00 = data_00["entanglement_spectrum_results"]
+    N_values = data_00["N_values"]
+    sigma_00 = data_00["σ_val"]
+    max_coeffs_00 = data_00["max_coeffs_to_store"]
+
+    # --- Load Data from File 2 (σ=0.002) ---
+    println("Loading data from $data_filename_0002...")
+    if !isfile(data_filename_0002)
+        println("ERROR: File not found: $data_filename_0002")
+        throw(SystemError("File not found", 2))
+    end
+    data_0002 = JLD2.load(data_filename_0002)
+    results_0002 = data_0002["entanglement_spectrum_results"]
+    N_values_0002 = data_0002["N_values"]
+    sigma_0002 = data_0002["σ_val"]
+    max_coeffs_0002 = data_0002["max_coeffs_to_store"]
+
+    println("All data loaded successfully.")
+
+    # --- Data Validation and Prep ---
+    sort!(N_values)
+    if N_values != sort(N_values_0002)
+        println("WARNING: N_values differ between files. Using N_values from first file: $N_values")
+    end
+    
+    if length(N_values) != 8
+        println("WARNING: Expected 8 N_values for a 2x4 layout, but found $(length(N_values)).")
+    end
+
+    # Use the maximum coefficient count from *both* files to set x-axis limits
+    max_coeffs_to_store = max(max_coeffs_00, max_coeffs_0002)
+
+    # --- Plot Setup ---
+    # Using the "perfect" dimensions from full_ent_spec_plot.jl
+    plot_width_px = 2400
+    plot_height_px = 1000
+    
+    p_layout = plot(
+        layout = (2, 4),
+        size = (plot_width_px, plot_height_px),
+        plot_title = "Full Entanglement Spectrum Comparison (σ=$(sigma_00) vs σ=$(sigma_0002))",
+        plot_titlefontsize = 20,
+        legend = :topright, # We must keep the legend for this plot
+        top_margin = 10Plots.mm, # Matched from full_ent_spec_plot.jl
+        margin = 10Plots.mm       # Matched from full_ent_spec_plot.jl
+    )
+    
+    x_axis_label = "Schmidt Coefficients"
+    y_axis_label = "Coefficient Values"
+    y_lims = (0, 0.6) # Use ylims from original script
+    x_lims = (0, max_coeffs_to_store + 10) # Use the combined max
+
+    # --- Plotting Loop ---
+    println("Generating 8 subplots...")
+    for (i, N) in enumerate(N_values)
+        
+        title_str = "$N nodes"
+        
+        # Check if data exists for this N in both files
+        has_data_00 = haskey(results_00, N)
+        has_data_0002 = haskey(results_0002, N)
+
+        if !has_data_00
+            println("  WARNING: No data found for N = $N in file 00.")
+            title_str *= " (Missing σ=0.0)"
+        end
+        if !has_data_0002
+            println("  WARNING: No data found for N = $N in file 0002.")
+            title_str *= " (Missing σ=0.002)"
+        end
+        
+        # Define labels *only* for the first subplot (i=1)
+        # This creates a single legend for the whole figure
+        label_00 = (i == 1) ? "σ=$sigma_00" : ""
+        label_0002 = (i == 1) ? "σ=$sigma_0002" : ""
+
+        
+        # Plot data for sigma = 0.002 (orange)
+        if has_data_0002
+            coeffs_0002 = results_0002[N]
+            bar!(
+                p_layout,
+                subplot = i,
+                coeffs_0002,
+                title = title_str, # Title is set by first plot
+                xlabel = x_axis_label,
+                ylabel = y_axis_label,
+                ylims = y_lims,
+                xlims = x_lims,
+                label = label_0002,
+                seriescolor = :darkorange, # Using color from your other script
+                linecolor = :darkorange,
+                bar_width = 1,
+                gap = 0,
+                alpha = 0.6 # Add transparency
+                )
+            end
+            
+            # Plot data for sigma = 0.0 (purple) on top
+            if has_data_00
+                coeffs_00 = results_00[N]
+                bar!(
+                    p_layout,
+                    subplot = i,
+                    coeffs_00,
+                    title = title_str,
+                    xlabel = x_axis_label,
+                    ylabel = y_axis_label,
+                    ylims = y_lims,
+                    xlims = x_lims,
+                    label = label_00,
+                    seriescolor = :purple, # Using color from your other script
+                    linecolor = :purple,
+                    bar_width = 1,
+                    gap = 0,
+                    alpha = 0.6 # Add transparency
+                )
+            end
+
+        # If no data for either N, plot an empty box
+        if !has_data_00 && !has_data_0002
+            plot!(p_layout, subplot = i, title = "$N nodes (No Data)", framestyle=:box)
+        end
+    end
+
+    # --- Save Output ---
+    savefig(p_layout, output_filename)
+    println("\nPlot saved successfully to $output_filename")
+
+catch e
+    println("\nAn error occurred while trying to read data or generate the plot:")
+    showerror(stdout, e)
+    println()
+end
