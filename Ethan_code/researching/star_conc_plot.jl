@@ -1,73 +1,74 @@
-using JLD2, Plots
+using Plots, JLD2
 
-
-gr()
-
-filename = joinpath(@__DIR__, "star_conc_data.jld2")
-
-function load_data_and_plot(data_file)
-    println("Loading data from $data_file...")
-    if !isfile(data_file)
-        println("Error: Data file '$data_file' not found.")
+"""
+Plots the average concurrence vs. N from the simulation data.
+"""
+function plot_concurrence_results(filename::String)
+    println("Loading data from $filename...")
+    
+    # Check if the file exists
+    if !isfile(filename)
+        println("ERROR: Data file '$filename' not found.")
         println("Please run 'star_conc.jl' first to generate the data.")
         return
     end
     
-    data = load(data_file)
-    results_data = data["results"]
-    N_range_data = data["N_range"]
+    # Load the results
+    data = jldopen(filename, "r")
+    results = read(data, "results")
+    N_range = read(data, "N_range")
+    sigma_values = read(data, "sigma_values")
+    close(data)
 
-    N_values = collect(N_range_data)
-    sigma_values = [0.0, 0.001, 0.002]
-
-
-
-    plot_attrs = Dict(
-        0.0 => (
-            color = :gold,
-            shape = :circle
-        ),
-        0.001 => (
-            color = :darkviolet,
-            shape = :square
-        ),
-        0.002 => (
-            color = :firebrick,
-            shape = :diamond
-        )
-    )
-
-    plt = plot(
-        title="Average Bond Dimension against System Size",
-        xlabel="System Size (N)",
-        ylabel="Avgerage Max Bond Dimension",
-        legend=:bottomright,     
-        framestyle=:box,     
-        size=(800, 500),    
-        dpi=300             
+    println("Plotting concurrence results...")
+    
+    p1 = plot(
+        title = "Star Graph Concurrence vs. System Size",
+        xlabel = "System Size (N)",
+        ylabel = "Concurrence C(ρ₁₂)",
+        legend = :topright,
+        # xaxis = :log10, # Log scale for N
+        # yaxis = :log10, # Log scale for Concurrence
+        minorgrid = true
     )
     
-
-
-    for σ in sigma_values
+    sorted_sigmas = sort(sigma_values)
+    
+    for σ in sorted_sigmas
+        avg_concurrence = results[σ].avg
+        error_std = results[σ].err
         
-        attrs = plot_attrs[σ]
 
-        plot!(plt, N_values[N_slice], results_data[σ].avg[N_slice],
-            ribbon=results_data[σ].err[N_slice],
-            fillalpha=0.2,                   
-            
-            label="σ = $σ",
-            lw=2,                              
-            marker=attrs.shape,               
-            markersize=4,                       
-            color=attrs.color
+        # local marker_shape
+        # if σ == 0.0
+        #     marker_shape = :square
+        # elseif σ == 0.002 
+        #     marker_shape = :circle
+        # else
+        #     marker_shape = :auto 
+        # end
+        
+        plot!(
+            p1,
+            N_range, 
+            avg_concurrence, 
+            ribbon = error_std, 
+            label = "σ = $σ", 
+            marker = :square, 
+            markersize = 4
         )
-    end
+    end 
     
-    output_filename = joinpath(@__DIR__, "star_conc_plot.png")
-    savefig(plt, output_filename)
-    println("Plot saved successfully to $output_filename")
+    
+    output_filename = "star_conc_plot.png"
+    savefig(p1, output_filename)
+    println("Saved concurrence plot to $output_filename")
+
 end
 
-load_data_and_plot(filename)
+
+data_filename = joinpath(@__DIR__, "star_conc_data.jld2")
+
+plot_concurrence_results(data_filename)
+
+println("Plotting script finished.")

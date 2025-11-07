@@ -13,18 +13,18 @@ function create_MPS(L::Int)
 end
 
 """
-Creates an adjacency matrix for a star graph with the center at spin 1.
-No disorder (homogeneous couplings).
+Creates a weighted adjacency matrix for a star graph (center spin 1).
+Applies disorder 'σ' to the couplings.
 """
-function create_star_adj_mat(N::Int)
+function create_weighted_star_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     A = zeros(Float64, N, N)
     if N < 2
         return A
     end
     # Connect center (1) to all outer spins (2...N)
     for j in 2:N
-        A[1, j] = 1.0
-        A[j, 1] = 1.0
+        weight = (σ == 0.0) ? μ : (μ + σ * randn())
+        A[1, j] = A[j, 1] = weight
     end
     return A
 end
@@ -50,123 +50,173 @@ end
 
 """
 Calculates concurrence for a 2-qubit (4x4) density matrix.
-C(ρ) = max(0, λ₁ - λ₂ - λ₃ - λ₄)
-where λᵢ are the sorted sqrt(eigenvalues) of (ρ * ρ̃)
-and ρ̃ = (σʸ ⊗ σʸ)ρ*(σʸ ⊗ σʸ)
 """
 function calculate_concurrence(rho_matrix::Matrix{ComplexF64})
     if size(rho_matrix) != (4, 4)
         error("Density matrix must be 4x4")
     end
 
-    # Pauli-Y matrix
     sy = [0.0 -1.0im; 1.0im 0.0]
-    # σʸ ⊗ σʸ
     sy_sy = kron(sy, sy)
 
-    # ρ̃ = (σʸ ⊗ σʸ)ρ*(σʸ ⊗ σʸ)
     rho_tilde = sy_sy * conj(rho_matrix) * sy_sy
-
-    # R = ρ * ρ̃
     R_matrix = rho_matrix * rho_tilde
-
-    # Eigenvalues of R
     eigvals_R = eigvals(R_matrix)
-
-    # λᵢ are the square roots of the eigenvalues of R, sorted by real part
+    
     lambdas = sort(sqrt.(complex(eigvals_R)), by=real, rev=true)
 
-    # C = max(0, λ₁ - λ₂ - λ₃ - λ₄)
     C = max(0.0, real(lambdas[1]) - real(lambdas[2]) - real(lambdas[3]) - real(lambdas[4]))
     return C
 end
 
-
-println("Starting Star Graph Concurrence calculation (Case 1)...")
-
-
-N_range = 4:1:12 
-concurrence_results = zeros(Float64, length(N_range))
-
-# DMRG parameters
-num_sweeps = 10
-max_bond_dim_limit = 100 
-cutoff = 1E-10
-
-for (i, N) in enumerate(N_range)
-    println("Running N = $N...")
-
-    ψ₀, sites = create_MPS(N)
-    adj_mat = create_star_adj_mat(N)
-
-    H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-1.0, Δ=-1.0)
-
-    # 2. Run DMRG
-    sweeps = Sweeps(num_sweeps)
-    setmaxdim!(sweeps, max_bond_dim_limit)
-    setcutoff!(sweeps, cutoff)
+function run_simulation_star_concurrence(
+    results::Dict,
+    N_range,
+    sigma_values,
+    num_graphs_avg::Int,
+    num_sweeps::Int,
+    max_bond_dim_limit::Int,
+    cutoff::Float64,
+    μ::Float64,
+    filename::String
+)
     
-    _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
+    println("Data will be saved to: $filename")
 
-    if N < 2
-        concurrence_results[i] = 0.0
-        continue
+    Threads.@threads for i in 1:length(N_range)
+        N = N_range[i] 
+
+        if results[sigma_values[1]].avg[i] != 0.0
+             println("Skipping N = $N, results already loaded/computed.")
+            continue
+        end
+        
+        for σ in sigma_values
+            
+            concurrence_for_avg = zeros(Float64, num_graphs_avg)
+            
+            for k in 1:num_graphs_avg
+                ψ₀, sites = create_MPS(N)
+                
+                adj_mat = create_weighted_star_adj_mat(N, σ; μ=μ)
+                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-1.0, Δ=-1.0)
+
+                sweeps = Sweeps(num_sweeps)
+                setmaxdim!(sweeps, max_bond_dim_limit)
+                setcutoff!(sweeps, cutoff)
+
+                _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
+    
+                if N < 2
+                    concurrence_for_avg[k] = 0.0
+                    continue
+                end
+
+                # Calculate 2-site RDM for center (1) and one outer spin (2)
+                orthogonalize!(ψ_gs, 1)
+                
+                s1 = sites[1]
+                s2 = sites[2] # Concurrence between center (1) and this spin (2)
+
+                # Contract the first two MPS tensors
+                phi = ψ_gs[1] * ψ_gs[2]
+                
+                # Compute the RDM by contracting with the complex conjugate (bra)
+                # This traces over the bond connecting to site 3
+                rho_12_tensor = phi * dag(prime(phi, s1, s2))
+
+                # Convert RDM tensor to a standard 4x4 matrix
+                C_rows = combiner(s1, s2)
+                C_cols = combiner(prime(s1), prime(s2))
+                
+
+                # must dag() C_cols to flip the direction of s1' and s2' for correct contraction.
+                rho_combined = (rho_12_tensor * C_rows) * dag(C_cols)
+                
+                rho_matrix = matrix(rho_combined)
+
+                C = calculate_concurrence(complex(rho_matrix))
+                concurrence_for_avg[k] = C
+            end
+
+            avg_conc = mean(concurrence_for_avg)
+            std_dev = std(concurrence_for_avg)
+            
+            results[σ].avg[i] = avg_conc
+            results[σ].err[i] = std_dev
+        end
+        println("Completed N = $N")
+
+        # Save checkpoint
+        try
+            jldsave(filename; results, N_range, sigma_values)
+            println("Checkpoint saved for N = $N")
+        catch e
+            println("WARNING: Could not save checkpoint for N = $N. Error: $e")
+        end
     end
-
-    # 3. Calculate 2-site RDM for center (1) and one outer spin (2)
-    #    using the manual ITensors.jl contraction method.
-    
-    # Ensure the MPS is orthogonalized at site 1
-    orthogonalize!(ψ_gs, 1)
-    
-    # Get the site indices
-    # 'sites' is already the vector of site indices,
-    # so we just index into it.
-    s1 = sites[1]
-    s2 = sites[2]
-
-    # Contract the "ket" tensors for sites 1 and 2
-    phi = ψ_gs[1] * ψ_gs[2]
-    
-    # Create the RDM by contracting the "ket" (phi) with the "bra" (its dagger)
-    # dag(prime(phi, s1, s2)) creates the "bra" with primed site indices
-    rho_12_tensor = phi * dag(prime(phi, s1, s2))
-
-    # 4. Convert RDM tensor to a standard 4x4 matrix
-    
-    # Use combiners to explicitly group row and column indices.
-    # This is a more robust method for QN tensors.
-    C_rows = combiner(s1, s2)
-    C_cols = combiner(prime(s1), prime(s2))
-
-    # Apply the combiners to contract (s1,s2) into 'C_rows'
-    # and (s1',s2') into 'C_cols'.
-    rho_combined = (rho_12_tensor * C_rows) * C_cols
-
-    # rho_combined is now a 2-index tensor (rows, cols).
-    # Convert this directly to a dense Julia matrix.
-    rho_matrix = matrix(rho_combined)
-
-    C = calculate_concurrence(rho_matrix)
-    concurrence_results[i] = C
-
-    println("N = $N, Concurrence(Spin 1, Spin 2) = $C")
+    println("...calculations finished.")
 end
 
-println("...calculations finished.")
 
+println("Starting Star Graph Concurrence calculations...")
 
-
-println("\n" * "="^30)
-println("Final Results: Concurrence vs. N (Star Graph)")
-for i in 1:length(N_range)
-    println("N = $(N_range[i]), C = $(concurrence_results[i])")
-end
+# Parameters
+N_range = 4:1:20
+sigma_values = [0.0, 0.002] 
+num_graphs_avg = 10            
+num_sweeps = 10
+max_bond_dim_limit = 100
+cutoff = 1E-10
+μ = 1.0                     
 
 filename = joinpath(@__DIR__, "star_conc_data.jld2")
-try
-    jldsave(filename; N_range, concurrence_results)
-    println("\nResults saved successfully to $filename")
-catch e
-    println("\nWARNING: Could not save results. Error: $e")
+
+# Check for existing data and resume
+if isfile(filename)
+    println("Found existing data file. Loading progress...")
+    try
+        loaded_data = jldopen(filename, "r")
+        N_range_loaded = read(loaded_data, "N_range")
+        sigma_values_loaded = read(loaded_data, "sigma_values")
+        
+        if N_range_loaded == N_range && sigma_values_loaded == sigma_values
+            println("Parameters match. Resuming...")
+            global results = read(loaded_data, "results") 
+        else
+            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            global results = Dict(σ => (avg=zeros(Float64, length(N_range)),
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values)
+        end
+        close(loaded_data)
+    catch e
+        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values)
+    end
+else
+    println("No existing data file found. Starting from scratch.")
+    global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                err=zeros(Float64, length(N_range))) 
+                                for σ in sigma_values)
 end
+
+# Run the simulation
+run_simulation_star_concurrence(
+    results,
+    N_range,
+    sigma_values,
+    num_graphs_avg,
+    num_sweeps,
+    max_bond_dim_limit,
+    cutoff,
+    μ,
+    filename
+)
+
+println("Calculations finished. Final data save...")
+jldsave(filename; results, N_range, sigma_values)
+println("Data saved successfully.\n")
+

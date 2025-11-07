@@ -5,10 +5,8 @@ using Base.Threads
 
 Random.seed!(1234);
 
-
-
 """
-[cite_start][cite: 1016-1017]
+Creates an MPS for an alternating "Up", "Dn" initial state.
 """
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
@@ -19,7 +17,6 @@ end
 
 """
 Creates a weighted adjacency matrix for a completely connected graph.
-[cite_start][cite: 1017-1018]
 """
 function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     if σ == 0.0
@@ -37,13 +34,13 @@ end
 
 """
 Creates the MPO for the XXZ Hamiltonian on a dense graph.
-[cite_start][cite: 1018-1020]
 """
 function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64)
     ampo = OpSum()
     for i in 1:N-1
         for j in (i+1):N 
             coupling_strength = adj_mat[i, j]
+            
             if coupling_strength != 0.0
                 ampo += coupling_strength * (J / 2), "S+", i, "S-", j
                 ampo += coupling_strength * (J / 2), "S-", i, "S+", j
@@ -55,8 +52,7 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
 end
 
 """
-NEW: Creates the MPO for a 1D Disordered XXZ Chain.
-(Styled to match the functions above)
+Creates the MPO for a 1D Disordered XXZ Chain.
 """
 function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ::Float64, μ::Float64=1.0)
     ampo = OpSum()
@@ -75,11 +71,8 @@ function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ:
     return MPO(ampo, sites)
 end
 
-
-
 """
 Runs Connected Model: Dense Disordered Graph.
-[cite_start]Structure mirrors avg_err_bd.jl [cite: 1020-1026]
 """
 function run_connected_model(
     results::Dict,
@@ -94,8 +87,6 @@ function run_connected_model(
     Δ::Float64,
     filename::String
 )
-    println("--- 🔬 Starting Connected Model: Dense Disordered Graph ---")
-    
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
 
@@ -119,7 +110,7 @@ function run_connected_model(
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
                 setcutoff!(sweeps, cutoff)
-                # [cite_start]Add noise as in the entropy script [cite: 14-15]
+                # Add noise to improve convergence
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
@@ -134,7 +125,7 @@ function run_connected_model(
         end
         println("Connected Model: Completed N = $N")
 
-        # Save checkpoint (inside N loop, as in user file)
+        # Save checkpoint
         try
             # Must lock to prevent race condition on file write
             lock(jld_lock) do
@@ -151,13 +142,10 @@ function run_connected_model(
             println("WARNING: Connected Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("--- ✅ Connected Model: Finished ---")
 end
-
 
 """
 Runs Linear Model: 1D Disordered Chain.
-[cite_start]Structure mirrors avg_err_bd.jl [cite: 1020-1026]
 """
 function run_linear_model(
     results::Dict,
@@ -172,8 +160,6 @@ function run_linear_model(
     Δ::Float64,
     filename::String
 )
-    println("--- 🔬 Starting Linear Model: 1D Disordered Chain ---")
-    
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
 
@@ -190,7 +176,7 @@ function run_linear_model(
             
             for k in 1:num_runs
                 ψ₀, sites = create_MPS(N)
-                # Use the NEW MPO function
+                # Use the new MPO function for a 1D chain
                 H_mpo = create_disordered_chain_mpo(N, sites; J=J, Δ=Δ, σ=σ, μ=μ)
 
                 sweeps = Sweeps(num_sweeps)
@@ -210,7 +196,7 @@ function run_linear_model(
         end
         println("Linear Model: Completed N = $N")
 
-        # Save checkpoint (inside N loop)
+        # Save checkpoint
         try
             # Must lock to prevent race condition on file write
             lock(jld_lock) do
@@ -226,14 +212,11 @@ function run_linear_model(
             println("WARNING: Linear Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("--- ✅ Linear Model: Finished ---")
 end
 
 
 
-println("Starting calculations...")
-
-N_range = 10:1:100
+N_range = 10:2:12
 sigma_values = [0.0, 0.002]
 num_graphs_avg = 10
 num_sweeps = 30
@@ -245,14 +228,11 @@ J_coupling = -0.5
 Delta_coupling = 0.5
 
 filename = joinpath(@__DIR__, "lin_con_comparison_data.jld2")
-println("Data file: $filename\n")
-
 global jld_lock = ReentrantLock()
 
 init_results_dict() = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
-                                  for σ in sigma_values)
-
+                                 for σ in sigma_values)
 
 local results_connected, results_linear
 
@@ -293,7 +273,7 @@ else
     )
 end
 
-
+println("Running Connected Model...")
 run_connected_model(
     results_connected,
     N_range,
@@ -308,6 +288,7 @@ run_connected_model(
     filename
 )
 
+println("Running Linear Model...")
 run_linear_model(
     results_linear,
     N_range,
@@ -322,11 +303,11 @@ run_linear_model(
     filename
 )
 
-println("Calculations finished. Final data save...")
+println("Calculations finished. Saving final data...")
 jldsave(filename; 
     results_connected, 
     results_linear, 
     N_range, 
     sigma_values
 )
-println("Data saved successfully.\n")
+println("Data saved successfully.")
