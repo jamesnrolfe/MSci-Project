@@ -8,7 +8,6 @@ function create_comparison_plot()
 
     if !isfile(data_filename)
         println("ERROR: Data file not found: $data_filename")
-        println("Please run 'lin_con_comparison.jl' first to generate the data.")
         return
     end
 
@@ -25,7 +24,6 @@ function create_comparison_plot()
         return
     end
 
-    println("Data loaded. Generating plot...")
 
     gr()
     
@@ -65,7 +63,7 @@ function create_comparison_plot()
 
     try
         savefig(p, plot_filename)
-        println("--- ✅ Plot saved successfully to $plot_filename ---")
+        println("Plot saved successfully to $plot_filename")
     catch e
         println("ERROR: Could not save plot. Error: $e")
     end

@@ -99,10 +99,8 @@ function run_simulation_sigma(
         end
     end
 
-    println("...calculations finished.")
 end
 
-println("Starting calculations...")
 
 N_range = 10:1:100
 sigma_range = 0.0:0.0002:0.002 
@@ -116,7 +114,7 @@ filename = joinpath(@__DIR__, "surface_plot_sigma_data(-1.0)(-1.0).jld2")
 
 
 if isfile(filename)
-    println("Found existing data file. Loading progress...")
+    println("Found existing data file. Loading progress")
     try
         loaded_data = jldopen(filename, "r")
         N_range_loaded = read(loaded_data, "N_range")
@@ -152,7 +150,6 @@ run_simulation_sigma(
     μ
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename; avg_bond_dims, N_range, sigma_range)
 println("Data saved successfully.\n")
 

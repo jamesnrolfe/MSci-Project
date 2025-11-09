@@ -72,7 +72,7 @@ function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ:
 end
 
 """
-Runs Connected Model: Dense Disordered Graph.
+Runs Connected Model
 """
 function run_connected_model(
     results::Dict,
@@ -99,7 +99,6 @@ function run_connected_model(
         for σ in sigma_values
             bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            # For σ=0, no averaging is needed
             num_runs = (σ == 0.0) ? 1 : num_graphs_avg
             
             for k in 1:num_runs
@@ -110,7 +109,6 @@ function run_connected_model(
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
                 setcutoff!(sweeps, cutoff)
-                # Add noise to improve convergence
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
@@ -125,7 +123,6 @@ function run_connected_model(
         end
         println("Connected Model: Completed N = $N")
 
-        # Save checkpoint
         try
             # Must lock to prevent race condition on file write
             lock(jld_lock) do
@@ -224,8 +221,8 @@ max_bond_dim_limit = 250
 cutoff = 1E-10
 μ = 1.0
 
-J_coupling = -0.5
-Delta_coupling = 0.5
+J_coupling = -1.0
+Delta_coupling = -1.0
 
 filename = joinpath(@__DIR__, "lin_con_comparison_data.jld2")
 global jld_lock = ReentrantLock()

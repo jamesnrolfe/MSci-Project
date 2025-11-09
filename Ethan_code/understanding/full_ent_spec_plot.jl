@@ -4,7 +4,6 @@ using Plots
 data_filename = joinpath(@__DIR__,"full_ent_spec_data_0002.jld2")
 output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0002.png")
 
-println("Starting plotting script...")
 println("Loading data from $data_filename...")
 
 try
@@ -28,7 +27,6 @@ try
         
         if length(N_values) != 8
             println("WARNING: Expected 8 N_values for a 2x4 layout, but found $(length(N_values)).")
-            println("The script will proceed, but the layout may not be as expected.")
         end
 
         plot_width_px = 2400  

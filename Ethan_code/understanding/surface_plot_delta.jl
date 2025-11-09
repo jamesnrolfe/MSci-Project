@@ -107,10 +107,8 @@ function run_simulation_delta(
         end
     end
     
-    println("...calculations finished.")
 end
 
-println("Starting calculations...")
 
 N_range = 10:1:100  
 delta_range = [-1.0, -0.5, 0.0, 0.5, 1.0] 
@@ -167,6 +165,5 @@ run_simulation_delta(
     J
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename; avg_bond_dims, N_range, delta_range, sigma_values)
 println("Data saved successfully.\n")

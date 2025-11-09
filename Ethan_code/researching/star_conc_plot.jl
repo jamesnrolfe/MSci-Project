@@ -22,7 +22,6 @@ function plot_concurrence_results(filename::String)
 
     println("Plotting concurrence results...")
     
-    # Initialize the plot
     p1 = plot(
         title = "Star Graph Concurrence vs. System Size",
         xlabel = "System Size (N)",
@@ -58,10 +57,8 @@ function plot_concurrence_results(filename::String)
 end
 
 
-# Define the data file to read from
 data_filename = joinpath(@__DIR__, "star_conc_data.jld2")
 
-# Plot the Concurrence vs. N results
 plot_concurrence_results(data_filename)
 
 println("Plotting script finished.")

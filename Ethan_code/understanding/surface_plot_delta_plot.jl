@@ -9,7 +9,6 @@ function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
     if !isfile(data_file)
         println("Error: Data file '$data_file' not found.")
-        println("Please run 'surface_plot_delta.jl' first to generate the data.")
         return 
     end
     
@@ -58,6 +57,5 @@ function load_data_and_plot(data_file)
     end
 end
 
-println("--- Loading and Plotting from File ---")
 load_data_and_plot(filename)
 println("Plotting script finished.\n")

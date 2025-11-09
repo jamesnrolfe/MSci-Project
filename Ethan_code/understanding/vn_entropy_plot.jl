@@ -82,7 +82,6 @@ function load_and_generate_plots()
 
     if !isfile(filename)
         println("Error: Data file '$filename' not found.")
-        println("Please run 'vn_entropy_data.jl' first to generate the data.")
         return
     end
     
@@ -90,13 +89,13 @@ function load_and_generate_plots()
     entropy_results = data["entropy_results"]
     N_range_used = data["N_range_used"]
 
-    println("Generating linear plot...")
+    println("Generating linear plot")
     plt_linear = plot_entropy_linear(N_range_used, entropy_results)
     output_linear = joinpath(@__DIR__, "vn_entropy_plot_lin(-1.0)(-1.0).png")
     savefig(plt_linear, output_linear)
     println("Saved linear plot to $output_linear")
 
-    println("Generating log scale plot...")
+    println("Generating log scale plot")
     plt_log = plot_entropy_logscale(N_range_used, entropy_results)
     output_log = joinpath(@__DIR__, "vn_entropy_plot_log(-1.0)(-1.0).png")
     savefig(plt_log, output_log)

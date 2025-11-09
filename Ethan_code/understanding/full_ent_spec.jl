@@ -78,7 +78,7 @@ function get_schmidt_coeffs(N, σ, J, Δ, μ, num_sweeps)
 end
 
 """
-Main simulation function, structured to match the other files.
+Main simulation function
 """
 function run_simulation_ent_spec(
     entanglement_spectrum_results::Dict,
@@ -128,11 +128,9 @@ function run_simulation_ent_spec(
             println("WARNING: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("...calculations finished.")
 end
 
 
-println("Starting Entanglement Spectrum calculations...")
 
 N_values = [20, 30, 40, 50, 60, 70, 80, 90]
 σ_val = 0.0       
@@ -164,22 +162,18 @@ if isfile(filename)
 
         if params_match
             println("Parameters match. Resuming...")
-            # Use 'global' to assign to the variable in the global scope
             global entanglement_spectrum_results = read(loaded_data, "entanglement_spectrum_results")
         else
             println("WARNING: Parameters in file do not match current script. Starting from scratch.")
-            # Use 'global' to assign to the variable in the global scope
             global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
         end
         close(loaded_data)
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        # Use 'global' to assign to the variable in the global scope
         global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
     end
 else
     println("No existing data file found. Starting from scratch.")
-    # Use 'global' to assign to the variable in the global scope
     global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
 end
 
