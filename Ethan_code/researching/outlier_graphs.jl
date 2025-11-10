@@ -108,7 +108,7 @@ end
 function main_outlier_comparison()
     println("--- Starting Part 3: Outlier Graph Entanglement Comparison ---")
 
-    N_range = [8, 10, 12, 14, 16]
+    N_range = [10, 20, 30, 40, 50, 60, 70, 80, 90]
     sigma_values = [0.0, 0.01, 0.02] 
     num_graphs_avg = 10 
 
