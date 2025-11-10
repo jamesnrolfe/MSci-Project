@@ -10,7 +10,7 @@ Creates an MPS for an alternating "Up", "Dn" initial state.
 """
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
-    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L]
+    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L] 
     ψ₀ = MPS(sites, initial_state) 
     return ψ₀, sites
 end
@@ -26,7 +26,7 @@ function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     end
     A = zeros(Float64, N, N)
     for i in 1:N, j in (i+1):N
-        weight = μ + σ * randn()
+        weight = μ + σ * randn() 
         A[i, j] = A[j, i] = weight
     end
     return A
@@ -42,10 +42,10 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
             coupling_strength = adj_mat[i, j]
             
             if coupling_strength != 0.0
-                ampo += coupling_strength * (J / 2), "S+", i, "S-", j
-                ampo += coupling_strength * (J / 2), "S-", i, "S+", j
-                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j
-            end
+                ampo += coupling_strength * (J / 2), "S+", i, "S-", j 
+                ampo += coupling_strength * (J / 2), "S-", i, "S+", j 
+                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j 
+            end 
         end
     end
     return MPO(ampo, sites)
@@ -53,7 +53,7 @@ end
 
 """
 Creates the MPO for a 1D Disordered XXZ Chain.
-"""
+""" 
 function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ::Float64, μ::Float64=1.0)
     ampo = OpSum()
     
@@ -66,7 +66,7 @@ function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ:
         
         ampo += coupling_strength * (J / 2), "S+", i, "S-", i+1
         ampo += coupling_strength * (J / 2), "S-", i, "S+", i+1
-        ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", i+1
+        ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", i+1 
     end
     return MPO(ampo, sites)
 end
@@ -97,9 +97,9 @@ function run_connected_model(
         end
         
         for σ in sigma_values
-            bond_dims_for_avg = zeros(Float64, num_graphs_avg)
+            bond_dims_for_avg = zeros(Float64, num_graphs_avg) 
             
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
+            num_runs = (σ == 0.0) ? 1 : num_graphs_avg 
             
             for k in 1:num_runs
                 ψ₀, sites = create_MPS(N)
@@ -112,7 +112,7 @@ function run_connected_model(
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs) 
             end
 
             avg_dim = mean(bond_dims_for_avg[1:num_runs])
@@ -125,18 +125,18 @@ function run_connected_model(
 
         try
             # Must lock to prevent race condition on file write
-            lock(jld_lock) do
+            lock(jld_lock) do 
                 # Re-open file to save *all* results, not just this thread's
                 jldopen(filename, "r+") do file
                     if haskey(file, "results_connected")
                         delete!(file, "results_connected")
-                    end
+                    end 
                     file["results_connected"] = results
                 end
             end
             println("Connected Model: Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Connected Model: Could not save checkpoint for N = $N. Error: $e")
+            println("WARNING: Connected Model: Could not save checkpoint for N = $N. Error: $e") 
         end
     end
 end
@@ -167,9 +167,10 @@ function run_linear_model(
         end
         
         for σ in sigma_values
+            
             bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
+            num_runs = (σ == 0.0) ? 1 : num_graphs_avg 
             
             for k in 1:num_runs
                 ψ₀, sites = create_MPS(N)
@@ -182,7 +183,7 @@ function run_linear_model(
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs) 
             end
 
             avg_dim = mean(bond_dims_for_avg[1:num_runs])
@@ -195,12 +196,12 @@ function run_linear_model(
 
         # Save checkpoint
         try
-            # Must lock to prevent race condition on file write
+            # ]Must lock to prevent race condition on file write 
             lock(jld_lock) do
                 jldopen(filename, "r+") do file
                     if haskey(file, "results_linear")
                         delete!(file, "results_linear")
-                    end
+                    end 
                     file["results_linear"] = results
                 end
             end
@@ -214,7 +215,7 @@ end
 
 
 N_range = 10:2:100
-sigma_values = [0.0, 0.002]
+sigma_values = [0.0, 0.002] 
 num_graphs_avg = 10
 num_sweeps = 30
 max_bond_dim_limit = 250
@@ -229,7 +230,7 @@ global jld_lock = ReentrantLock()
 
 init_results_dict() = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
-                                 for σ in sigma_values)
+                                  for σ in sigma_values) 
 
 local results_connected, results_linear
 
@@ -243,7 +244,7 @@ if isfile(filename)
             sigma_values_loaded = read(file, "sigma_values")
 
             if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-                println("Parameters match. Resuming...")
+                println("Parameters match. Resuming...") 
                 results_connected = read(file, "results_connected")
                 results_linear = read(file, "results_linear")
             else
@@ -258,10 +259,11 @@ if isfile(filename)
         global results_linear = init_results_dict()
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found. Starting from scratch.") 
     global results_connected = init_results_dict()
     global results_linear = init_results_dict()
     
+    # Save the initial empty structure
     jldsave(filename; 
         results_connected, 
         results_linear, 
@@ -280,7 +282,7 @@ run_connected_model(
     max_bond_dim_limit,
     cutoff,
     μ,
-    J_coupling,
+    J_coupling, 
     Delta_coupling,
     filename
 )
