@@ -29,7 +29,7 @@ function load_data_and_plot(data_file)
         ylabel="σ",
         zlabel="Avg. Max Bond Dimension",
         
-        camera=(20, 35),
+        camera=(25, 35),
         
         c=cgrad(:inferno),
         legend=false,
