@@ -2,6 +2,7 @@ using Markdown
 using InteractiveUtils
 using Graphs, Random, GraphPlot, Plots, Colors, GraphRecipes
 using ITensors, ITensorMPS, LinearAlgebra
+using Plots, JLD2
 
 """
 Creates a weighted adjacency matrix for a star graph with N nodes Node 1 is the center.
@@ -44,36 +45,46 @@ end
 
 N_nodes = 8
 sigma = 0.02
+mu = 1
 
 adjmat = weighted_star_adjmat(N_nodes, sigma)
 G = Graphs.SimpleGraph(adjmat)
 
+# Create an N x N matrix initialized with a transparent color
+edge_color_matrix = fill(colorant"transparent", N_nodes, N_nodes)
 
-edge_colors = Color[]
 for edge in edges(G)
-
-    weight = adjmat[src(edge), dst(edge)]
+    i, j = src(edge), dst(edge)
+    weight = adjmat[i, j]
     
+    local color # Use local variable
     if weight > mu
-        push!(edge_colors, colorant"salmon") # > 1.0
+        color = colorant"salmon" # > 1.0
     elseif weight < mu
-        push!(edge_colors, colorant"violet")  # < 1.0
+        color = colorant"violet"  # < 1.0
     else
-        push!(edge_colors, colorant"grey") # 1.0
+        color = colorant"grey" # 1.0
     end
+    
+    # Assign the color to the matrix for both directions
+    edge_color_matrix[i, j] = color
+    edge_color_matrix[j, i] = color
 end
 
 layout = star_layout(G)
 
 node_labels = [string(i) for i in 1:N_nodes]
 
-p = GraphPlot.gplot(
+p = plot(
     G, 
-    layout=star_layout,           
+    layout=star_layout,         
     nodelabel=node_labels,
     nodesize=0.3,
-    nodelabelsize=3,
-    edgelinewidth=2.0,
-    edgestrokec=edge_colors  
+    fontsize=3,
+    linewidth=2.0,
+    edgecolor = edge_color_matrix  # Pass the new matrix here
 ) 
-display(p)
+
+output_filename = joinpath(@__DIR__, "star_graph_plot.png")
+savefig(p, output_filename)
+println("Saved graph plot to $output_filename")

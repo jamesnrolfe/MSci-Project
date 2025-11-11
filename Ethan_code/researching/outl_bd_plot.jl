@@ -3,74 +3,111 @@ using JLD2, Plots
 function create_comparison_plot()
     println("Loading data...")
     
-    # --- This file matches your new data script ---
-    data_filename = joinpath(@__DIR__, "outlier_graphs_data.jld2")
-    plot_filename = joinpath(@__DIR__, "outlier_graphs_plot.png")
+    # Define the two data files to read
+    connected_data_file = joinpath(@__DIR__, "full_bd_data.jld2")
+    outlier_data_file = joinpath(@__DIR__, "outl_bd_data.jld2")
+    
+    # Define the output plot filename
+    plot_filename = joinpath(@__DIR__, "outl_full_bd_plot.png")
 
-    if !isfile(data_filename)
-        println("ERROR: Data file not found: $data_filename")
+    if !isfile(connected_data_file)
+        println("ERROR: Connected data file not found: $connected_data_file")
+        return
+    end
+    if !isfile(outlier_data_file)
+         println("ERROR: Outlier data file not found: $outlier_data_file")
         return
     end
 
-    local results_standard, results_outlier, N_range, sigma_values
+    local results_connected, N_range_connected, sigma_values_connected
+    local results_outlier, N_range_outlier, sigma_values_outlier
+
+    # --- Load Connected Data ---
     try
-        jldopen(data_filename, "r") do file
-            # --- Loads the new variable names ---
-            results_standard = read(file, "results_standard")
-            results_outlier = read(file, "results_outlier")
-            N_range = read(file, "N_range")
-            sigma_values = read(file, "sigma_values")
+        jldopen(connected_data_file, "r") do file
+            # These files have "results", not "results_connected"
+            results_connected = read(file, "results")
+            N_range_connected = read(file, "N_range")
+            sigma_values_connected = read(file, "sigma_values")
         end
+        println("Loaded connected data from $connected_data_file")
     catch e
-        println("ERROR: Could not load data from $data_filename. Error: $e")
+        println("ERROR: Could not load data from $connected_data_file. Error: $e")
         return
     end
 
+    # --- Load Outlier Data ---
+    try
+        jldopen(outlier_data_file, "r") do file 
+            results_outlier = read(file, "results") 
+            N_range_outlier = read(file, "N_range")
+            sigma_values_outlier = read(file, "sigma_values")
+        end
+        println("Loaded outlier data from $outlier_data_file")
+    catch e
+        println("ERROR: Could not load data from $outlier_data_file. Error: $e")
+        return
+    end
+
+    # --- Check for consistency ---
+    if sigma_values_connected != sigma_values_outlier
+        println("WARNING: Sigma values do not match between files.")
+        println("Connected Sigmas: $sigma_values_connected")
+        println("Outlier Sigmas: $sigma_values_outlier")
+        println("Plotting may be misleading. Using connected sigma values for loop.")
+    end
+    
+    # Use the sigma values from the connected file for the loop
+    sigma_values = sigma_values_connected
 
     gr()
     
     p = plot(
-        title = "Bond Dimension Comparison: Standard vs. Outlier Graphs",
+        title = "Bond Dimension Comparison: Connected vs. Outlier Models", 
         xlabel = "System Size (N)",
         ylabel = "Average Max Bond Dimension",
         legend = :topleft,
         size = (1000, 600)
     )
 
-    # Define colors and linestyles for clarity
-    colors = [:blue, :red] # Colors for sigma_values[1] and sigma_values[2]
+    # Define colors
+    colors = [:blue, :purple, :red, :green] # Added more in case
     
     for (idx, σ) in enumerate(sigma_values)
         color = colors[idx]
         
-        # --- Plots the "Standard" (fully connected) data ---
-        plot!(p,
-            N_range,
-            results_standard[σ].avg,
-            ribbon = results_standard[σ].err,
-            label = "Standard (σ=$σ)",
-            color = color,
-            linestyle = :solid,
-            fillalpha = 0.15
-        )
+        # Plot Connected Data (if sigma exists)
+        if haskey(results_connected, σ)
+             plot!(p,
+                N_range_connected,
+                results_connected[σ].avg,
+                ribbon = results_connected[σ].err,
+                label = "Connected (σ=$σ)",
+                color = color,
+                linestyle = :solid,
+                fillalpha = 0.15 
+            )
+        end
         
-        # --- Plots the "Outlier" data ---
-        plot!(p,
-            N_range,
-            results_outlier[σ].avg,
-            ribbon = results_outlier[σ].err,
-            label = "Outlier (σ=$σ)",
-            color = color,
-            linestyle = :dash,
-            fillalpha = 0.15
-        )
+        # Plot Outlier Data (if sigma exists)
+        if haskey(results_outlier, σ)
+            plot!(p,
+                 N_range_outlier,
+                results_outlier[σ].avg,
+                ribbon = results_outlier[σ].err,
+                label = "Outlier (σ=$σ)",
+                color = color,
+                linestyle = :dash,
+                 fillalpha = 0.15 
+            )
+        end
     end
 
     try
         savefig(p, plot_filename)
-        println("Plot saved successfully to $plot_filename")
+        println("Plot saved successfully to $plot_filename") 
     catch e
-        println("ERROR: Could not save plot. Error: $e")
+        println("ERROR: Could not save plot. Error: $e") 
     end
 end
 

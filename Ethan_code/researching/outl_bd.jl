@@ -5,31 +5,11 @@ using Base.Threads
 
 Random.seed!(1234);
 
-"""
-Creates an MPS for an alternating "Up", "Dn" initial state.
-"""
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
-    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L]
+    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L] 
     ψ₀ = MPS(sites, initial_state) 
     return ψ₀, sites
-end
-
-"""
-Creates a weighted adjacency matrix for a completely connected (standard) graph.
-"""
-function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
-    if σ == 0.0
-        A = ones(Float64, N, N)
-        A -= Matrix{Float64}(I, N, N)
-        return A
-    end
-    A = zeros(Float64, N, N)
-    for i in 1:N, j in (i+1):N
-        weight = μ + σ * randn()
-        A[i, j] = A[j, i] = weight
-    end
-    return A
 end
 
 """
@@ -41,17 +21,16 @@ function create_outlier_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
 
     # Create the (N-1)x(N-1) fully connected subgraph
     for i in 1:(N-1), j in (i+1):(N-1)
-        weight = (σ == 0.0) ? μ : (μ + σ * randn())
+        weight = (σ == 0.0) ? μ : (μ + σ * randn()) 
         A[i, j] = A[j, i] = weight
     end
 
     # Create the single connection for the outlier (spin N) to spin 1
-    outlier_weight = (σ == 0.0) ? μ : (μ + σ * randn())
+    outlier_weight = (σ == 0.0) ? μ : (μ + σ * randn()) 
     A[1, N] = A[N, 1] = outlier_weight
 
     return A
 end
-
 
 """
 Creates the MPO for the XXZ Hamiltonian on a graph with weighted interactions.
@@ -65,7 +44,7 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
             if coupling_strength != 0.0
                 ampo += coupling_strength * (J / 2), "S+", i, "S-", j
                 ampo += coupling_strength * (J / 2), "S-", i, "S+", j
-                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j
+                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j 
             end
         end
     end
@@ -73,10 +52,7 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
 end
 
 
-"""
-Runs Standard (Fully Connected) Model
-"""
-function run_standard_model(
+function run_simulation_avg_err_outlier(
     results::Dict,
     N_range,
     sigma_values,
@@ -84,137 +60,69 @@ function run_standard_model(
     num_sweeps::Int,
     max_bond_dim_limit::Int,
     cutoff::Float64,
-    μ::Float64,
-    J::Float64,
-    Δ::Float64,
-    filename::String
+    μ::Float64
 )
+    # Define the new filename for the outlier data
+    filename = joinpath(@__DIR__, "outl_bd_data.jld2")
+  
+    println("Data will be saved to: $filename")
+
     Threads.@threads for i in 1:length(N_range)
-        N = N_range[i]
+        N = N_range[i] 
 
-        # Check if this N is already done
-        if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Standard Model: Skipping N = $N, results already loaded.")
-            continue
-        end
-        
-        for σ in sigma_values
-            bond_dims_for_avg = zeros(Float64, num_graphs_avg)
-            
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
-            
-            for k in 1:num_runs
-                ψ₀, sites = create_MPS(N)
-                adj_mat = create_weighted_adj_mat(N, σ; μ=μ) # Use standard adj_mat
-                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=J, Δ=Δ)
-
-                sweeps = Sweeps(num_sweeps)
-                setmaxdim!(sweeps, max_bond_dim_limit)
-                setcutoff!(sweeps, cutoff)
-                setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
-
-                _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
-            end
-
-            avg_dim = mean(bond_dims_for_avg[1:num_runs])
-            std_dev = (num_runs > 1) ? std(bond_dims_for_avg[1:num_runs]) : 0.0
-            
-            results[σ].avg[i] = avg_dim
-            results[σ].err[i] = std_dev
-        end
-        println("Standard Model: Completed N = $N")
-
-        try
-            lock(jld_lock) do
-                jldopen(filename, "r+") do file
-                    if haskey(file, "results_standard")
-                        delete!(file, "results_standard")
-                    end
-                    file["results_standard"] = results
-                end
-            end
-            println("Standard Model: Checkpoint saved for N = $N")
-        catch e
-            println("WARNING: Standard Model: Could not save checkpoint for N = $N. Error: $e")
-        end
-    end
-end
-
-"""
-Runs Outlier Graph Model.
-"""
-function run_outlier_model(
-    results::Dict,
-    N_range,
-    sigma_values,
-    num_graphs_avg::Int,
-    num_sweeps::Int,
-    max_bond_dim_limit::Int,
-    cutoff::Float64,
-    μ::Float64,
-    J::Float64,
-    Δ::Float64,
-    filename::String
-)
-    Threads.@threads for i in 1:length(N_range)
-        N = N_range[i]
-
-        # Check if this N is already done
-        if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Outlier Model: Skipping N = $N, results already loaded.")
-            continue
+        if results[sigma_values[1]].avg[i] != 0.0
+             println("Skipping N = $N, results already loaded/computed.") 
+             continue
         end
         
         for σ in sigma_values
             
             bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
+            # Optimization: for sigma=0.0, all "graphs" are identical.
+            num_runs = (σ == 0.0) ? 1 : num_graphs_avg 
             
             for k in 1:num_runs
-                ψ₀, sites = create_MPS(N)
-                # Use the new MPO function for an outlier graph
-                adj_mat = create_outlier_adj_mat(N, σ; μ=μ) # Use outlier adj_mat
-                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=J, Δ=Δ)
+                ψ₀, sites = create_MPS(N) 
+                
+                # Create the Outlier Graph MPO
+                adj_mat = create_outlier_adj_mat(N, σ; μ=μ) 
+                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=-1.0, Δ=-1.0) 
 
-                sweeps = Sweeps(num_sweeps)
+                
+                sweeps = Sweeps(num_sweeps) 
                 setmaxdim!(sweeps, max_bond_dim_limit)
                 setcutoff!(sweeps, cutoff)
-                setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
+    
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs) 
             end
 
-            avg_dim = mean(bond_dims_for_avg[1:num_runs])
-            std_dev = (num_runs > 1) ? std(bond_dims_for_avg[1:num_runs]) : 0.0
+            avg_dim = mean(bond_dims_for_avg[1:num_runs]) 
+            std_dev = (num_runs > 1) ? std(bond_dims_for_avg[1:num_runs]) : 0.0 
             
             results[σ].avg[i] = avg_dim
             results[σ].err[i] = std_dev
+  
         end
-        println("Outlier Model: Completed N = $N")
+        println("Completed N = $N")
 
-        # Save checkpoint
         try
-            lock(jld_lock) do
-                jldopen(filename, "r+") do file
-                    if haskey(file, "results_outlier")
-                        delete!(file, "results_outlier")
-                    end
-                    file["results_outlier"] = results
-                end
-            end
-            println("Outlier Model: Checkpoint saved for N = $N")
+            jldsave(filename; results, N_range, sigma_values) 
+            println("Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Outlier Model: Could not save checkpoint for N = $N. Error: $e")
+            println("WARNING: Could not save checkpoint for N = $N. Error: $e")
         end
+
+    
     end
+    
 end
 
 
-
-N_range = 10:2:100
+# Parameters 
+N_range = 10:1:100
 sigma_values = [0.0, 0.002] 
 num_graphs_avg = 10
 num_sweeps = 30
@@ -222,92 +130,50 @@ max_bond_dim_limit = 250
 cutoff = 1E-10
 μ = 1.0
 
-J_coupling = -1.0
-Delta_coupling = -1.0
+# New filename 
+filename = joinpath(@__DIR__, "outl_bd_data.jld2")
 
-filename = joinpath(@__DIR__, "outlier_graphs_data.jld2")
-global jld_lock = ReentrantLock()
-
-init_results_dict() = Dict(σ => (avg=zeros(Float64, length(N_range)),
-                                  err=zeros(Float64, length(N_range))) 
-                                  for σ in sigma_values)
-
-local results_standard, results_outlier
-
+# Data loading structure 
 if isfile(filename)
-    println("Found existing data file. Loading progress...")
+    println("Found existing data file. Loading progress...") 
     try
-        global results_standard, results_outlier
+        loaded_data = jldopen(filename, "r")
+        N_range_loaded = read(loaded_data, "N_range")
+        sigma_values_loaded = read(loaded_data, "sigma_values")
         
-        jldopen(filename, "r") do file
-            N_range_loaded = read(file, "N_range")
-            sigma_values_loaded = read(file, "sigma_values")
-
-            if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-                println("Parameters match. Resuming...")
-                results_standard = read(file, "results_standard")
-                results_outlier = read(file, "results_outlier")
-            else
-                println("WARNING: Parameters in file do not match. Starting from scratch.")
-                results_standard = init_results_dict()
-                results_outlier = init_results_dict()
-            end
+        if N_range_loaded == N_range && sigma_values_loaded == sigma_values
+            println("Parameters match. Resuming...") 
+            global results = read(loaded_data, "results") 
+        else
+            println("WARNING: Parameters in file do not match current script. Starting from scratch.") 
+            global results = Dict(σ => (avg=zeros(Float64, length(N_range)),
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values) 
         end
+        close(loaded_data)
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        global results_standard = init_results_dict()
-        global results_outlier = init_results_dict()
+        global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                  err=zeros(Float64, length(N_range))) 
+                                  for σ in sigma_values) 
     end
 else
-    println("No existing data file found. Starting from scratch.")
-    global results_standard = init_results_dict()
-    global results_outlier = init_results_dict()
-    
-    # Save the initial empty structure
-    jldsave(filename; 
-        results_standard, 
-        results_outlier, 
-        N_range, 
-        sigma_values
-    )
+    println("No existing data file found. Starting from scratch.") 
+    global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
+                                err=zeros(Float64, length(N_range))) 
+                                for σ in sigma_values)
 end
 
-println("Running Standard (Fully Connected) Model...")
-run_standard_model(
-    results_standard,
+run_simulation_avg_err_outlier(
+    results,
     N_range,
     sigma_values,
     num_graphs_avg,
     num_sweeps,
     max_bond_dim_limit,
     cutoff,
-    μ,
-    J_coupling,
-    Delta_coupling,
-    filename
-)
+    μ
+) 
 
-println("Running Outlier Model...")
-run_outlier_model(
-    results_outlier,
-    N_range,
-    sigma_values,
-    num_graphs_avg,
-    num_sweeps,
-    max_bond_dim_limit,
-    cutoff,
-    μ,
-    J_coupling,
-    Delta_coupling,
-    filename
-)
-
-println("Calculations finished. Saving final data...")
-# Save final data
-jldsave(filename; 
-    results_standard, 
-    results_outlier, 
-    N_range, 
-    sigma_values
-)
-println("Data saved successfully.")
+jldsave(filename; results, N_range, sigma_values) 
+println("Data saved successfully.\n")
