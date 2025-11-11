@@ -10,13 +10,13 @@ Creates an MPS for an alternating "Up", "Dn" initial state.
 """
 function create_MPS(L::Int)
     sites = siteinds("S=1/2", L; conserve_qns=true)
-    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L] 
+    initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L]
     ψ₀ = MPS(sites, initial_state) 
     return ψ₀, sites
 end
 
 """
-Creates a weighted adjacency matrix for a completely connected graph.
+Creates a weighted adjacency matrix for a completely connected (standard) graph.
 """
 function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     if σ == 0.0
@@ -26,14 +26,35 @@ function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     end
     A = zeros(Float64, N, N)
     for i in 1:N, j in (i+1):N
-        weight = μ + σ * randn() 
+        weight = μ + σ * randn()
         A[i, j] = A[j, i] = weight
     end
     return A
 end
 
 """
-Creates the MPO for the XXZ Hamiltonian on a dense graph.
+Creates a weighted adjacency matrix for an 'outlier' graph.
+Spin N is connected only to spin 1.
+"""
+function create_outlier_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
+    A = zeros(Float64, N, N)
+
+    # Create the (N-1)x(N-1) fully connected subgraph
+    for i in 1:(N-1), j in (i+1):(N-1)
+        weight = (σ == 0.0) ? μ : (μ + σ * randn())
+        A[i, j] = A[j, i] = weight
+    end
+
+    # Create the single connection for the outlier (spin N) to spin 1
+    outlier_weight = (σ == 0.0) ? μ : (μ + σ * randn())
+    A[1, N] = A[N, 1] = outlier_weight
+
+    return A
+end
+
+
+"""
+Creates the MPO for the XXZ Hamiltonian on a graph with weighted interactions.
 """
 function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64)
     ampo = OpSum()
@@ -42,39 +63,20 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
             coupling_strength = adj_mat[i, j]
             
             if coupling_strength != 0.0
-                ampo += coupling_strength * (J / 2), "S+", i, "S-", j 
-                ampo += coupling_strength * (J / 2), "S-", i, "S+", j 
-                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j 
-            end 
+                ampo += coupling_strength * (J / 2), "S+", i, "S-", j
+                ampo += coupling_strength * (J / 2), "S-", i, "S+", j
+                ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", j
+            end
         end
     end
     return MPO(ampo, sites)
 end
 
-"""
-Creates the MPO for a 1D Disordered XXZ Chain.
-""" 
-function create_disordered_chain_mpo(N::Int, sites; J::Float64, Δ::Float64, σ::Float64, μ::Float64=1.0)
-    ampo = OpSum()
-    
-    # Create N-1 random couplings for the N-1 bonds
-    couplings = [μ + σ * randn() for _ in 1:(N-1)]
-
-    for i in 1:(N-1)
-        # Only add nearest-neighbor terms
-        coupling_strength = couplings[i]
-        
-        ampo += coupling_strength * (J / 2), "S+", i, "S-", i+1
-        ampo += coupling_strength * (J / 2), "S-", i, "S+", i+1
-        ampo += coupling_strength * (J * Δ), "Sz", i, "Sz", i+1 
-    end
-    return MPO(ampo, sites)
-end
 
 """
-Runs Connected Model
+Runs Standard (Fully Connected) Model
 """
-function run_connected_model(
+function run_standard_model(
     results::Dict,
     N_range,
     sigma_values,
@@ -88,22 +90,22 @@ function run_connected_model(
     filename::String
 )
     Threads.@threads for i in 1:length(N_range)
-        N = N_range[i] 
+        N = N_range[i]
 
         # Check if this N is already done
         if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Connected Model: Skipping N = $N, results already loaded.")
+            println("Standard Model: Skipping N = $N, results already loaded.")
             continue
         end
         
         for σ in sigma_values
-            bond_dims_for_avg = zeros(Float64, num_graphs_avg) 
+            bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg 
+            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
             
             for k in 1:num_runs
                 ψ₀, sites = create_MPS(N)
-                adj_mat = create_weighted_adj_mat(N, σ; μ=μ)
+                adj_mat = create_weighted_adj_mat(N, σ; μ=μ) # Use standard adj_mat
                 H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=J, Δ=Δ)
 
                 sweeps = Sweeps(num_sweeps)
@@ -112,7 +114,7 @@ function run_connected_model(
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs) 
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
             end
 
             avg_dim = mean(bond_dims_for_avg[1:num_runs])
@@ -121,30 +123,28 @@ function run_connected_model(
             results[σ].avg[i] = avg_dim
             results[σ].err[i] = std_dev
         end
-        println("Connected Model: Completed N = $N")
+        println("Standard Model: Completed N = $N")
 
         try
-            # Must lock to prevent race condition on file write
-            lock(jld_lock) do 
-                # Re-open file to save *all* results, not just this thread's
+            lock(jld_lock) do
                 jldopen(filename, "r+") do file
-                    if haskey(file, "results_connected")
-                        delete!(file, "results_connected")
-                    end 
-                    file["results_connected"] = results
+                    if haskey(file, "results_standard")
+                        delete!(file, "results_standard")
+                    end
+                    file["results_standard"] = results
                 end
             end
-            println("Connected Model: Checkpoint saved for N = $N")
+            println("Standard Model: Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Connected Model: Could not save checkpoint for N = $N. Error: $e") 
+            println("WARNING: Standard Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
 end
 
 """
-Runs Linear Model: 1D Disordered Chain.
+Runs Outlier Graph Model.
 """
-function run_linear_model(
+function run_outlier_model(
     results::Dict,
     N_range,
     sigma_values,
@@ -158,11 +158,11 @@ function run_linear_model(
     filename::String
 )
     Threads.@threads for i in 1:length(N_range)
-        N = N_range[i] 
+        N = N_range[i]
 
         # Check if this N is already done
         if haskey(results, sigma_values[1]) && results[sigma_values[1]].avg[i] != 0.0
-            println("Linear Model: Skipping N = $N, results already loaded.")
+            println("Outlier Model: Skipping N = $N, results already loaded.")
             continue
         end
         
@@ -170,12 +170,13 @@ function run_linear_model(
             
             bond_dims_for_avg = zeros(Float64, num_graphs_avg)
             
-            num_runs = (σ == 0.0) ? 1 : num_graphs_avg 
+            num_runs = (σ == 0.0) ? 1 : num_graphs_avg
             
             for k in 1:num_runs
                 ψ₀, sites = create_MPS(N)
-                # Use the new MPO function for a 1D chain
-                H_mpo = create_disordered_chain_mpo(N, sites; J=J, Δ=Δ, σ=σ, μ=μ)
+                # Use the new MPO function for an outlier graph
+                adj_mat = create_outlier_adj_mat(N, σ; μ=μ) # Use outlier adj_mat
+                H_mpo = create_weighted_xxz_mpo(N, adj_mat, sites; J=J, Δ=Δ)
 
                 sweeps = Sweeps(num_sweeps)
                 setmaxdim!(sweeps, max_bond_dim_limit)
@@ -183,7 +184,7 @@ function run_linear_model(
                 setnoise!(sweeps, LinRange(1E-6, 1E-10, num_sweeps)...)
 
                 _, ψ_gs = dmrg(H_mpo, ψ₀, sweeps; outputlevel=0)
-                bond_dims_for_avg[k] = maxlinkdim(ψ_gs) 
+                bond_dims_for_avg[k] = maxlinkdim(ψ_gs)
             end
 
             avg_dim = mean(bond_dims_for_avg[1:num_runs])
@@ -192,22 +193,21 @@ function run_linear_model(
             results[σ].avg[i] = avg_dim
             results[σ].err[i] = std_dev
         end
-        println("Linear Model: Completed N = $N")
+        println("Outlier Model: Completed N = $N")
 
         # Save checkpoint
         try
-            # ]Must lock to prevent race condition on file write 
             lock(jld_lock) do
                 jldopen(filename, "r+") do file
-                    if haskey(file, "results_linear")
-                        delete!(file, "results_linear")
-                    end 
-                    file["results_linear"] = results
+                    if haskey(file, "results_outlier")
+                        delete!(file, "results_outlier")
+                    end
+                    file["results_outlier"] = results
                 end
             end
-            println("Linear Model: Checkpoint saved for N = $N")
+            println("Outlier Model: Checkpoint saved for N = $N")
         catch e
-            println("WARNING: Linear Model: Could not save checkpoint for N = $N. Error: $e")
+            println("WARNING: Outlier Model: Could not save checkpoint for N = $N. Error: $e")
         end
     end
 end
@@ -225,56 +225,56 @@ cutoff = 1E-10
 J_coupling = -1.0
 Delta_coupling = -1.0
 
-filename = joinpath(@__DIR__, "lin_con_comparison_data.jld2")
+filename = joinpath(@__DIR__, "outlier_graphs_data.jld2")
 global jld_lock = ReentrantLock()
 
 init_results_dict() = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
-                                  for σ in sigma_values) 
+                                  for σ in sigma_values)
 
-local results_connected, results_linear
+local results_standard, results_outlier
 
 if isfile(filename)
     println("Found existing data file. Loading progress...")
     try
-        global results_connected, results_linear
+        global results_standard, results_outlier
         
         jldopen(filename, "r") do file
             N_range_loaded = read(file, "N_range")
             sigma_values_loaded = read(file, "sigma_values")
 
             if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-                println("Parameters match. Resuming...") 
-                results_connected = read(file, "results_connected")
-                results_linear = read(file, "results_linear")
+                println("Parameters match. Resuming...")
+                results_standard = read(file, "results_standard")
+                results_outlier = read(file, "results_outlier")
             else
                 println("WARNING: Parameters in file do not match. Starting from scratch.")
-                results_connected = init_results_dict()
-                results_linear = init_results_dict()
+                results_standard = init_results_dict()
+                results_outlier = init_results_dict()
             end
         end
     catch e
         println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
-        global results_connected = init_results_dict()
-        global results_linear = init_results_dict()
+        global results_standard = init_results_dict()
+        global results_outlier = init_results_dict()
     end
 else
-    println("No existing data file found. Starting from scratch.") 
-    global results_connected = init_results_dict()
-    global results_linear = init_results_dict()
+    println("No existing data file found. Starting from scratch.")
+    global results_standard = init_results_dict()
+    global results_outlier = init_results_dict()
     
     # Save the initial empty structure
     jldsave(filename; 
-        results_connected, 
-        results_linear, 
+        results_standard, 
+        results_outlier, 
         N_range, 
         sigma_values
     )
 end
 
-println("Running Connected Model...")
-run_connected_model(
-    results_connected,
+println("Running Standard (Fully Connected) Model...")
+run_standard_model(
+    results_standard,
     N_range,
     sigma_values,
     num_graphs_avg,
@@ -282,14 +282,14 @@ run_connected_model(
     max_bond_dim_limit,
     cutoff,
     μ,
-    J_coupling, 
+    J_coupling,
     Delta_coupling,
     filename
 )
 
-println("Running Linear Model...")
-run_linear_model(
-    results_linear,
+println("Running Outlier Model...")
+run_outlier_model(
+    results_outlier,
     N_range,
     sigma_values,
     num_graphs_avg,
@@ -303,9 +303,10 @@ run_linear_model(
 )
 
 println("Calculations finished. Saving final data...")
+# Save final data
 jldsave(filename; 
-    results_connected, 
-    results_linear, 
+    results_standard, 
+    results_outlier, 
     N_range, 
     sigma_values
 )

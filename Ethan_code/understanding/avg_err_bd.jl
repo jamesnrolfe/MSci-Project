@@ -103,12 +103,10 @@ function run_simulation_avg_err(
         end
 
     end
-    println("...calculations finished.")
     
 end
 
 
-println("Starting calculations...")
 
 N_range = 10:1:100
 sigma_values = [0.0, 0.001, 0.002]
@@ -161,6 +159,5 @@ run_simulation_avg_err(
     μ
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename; results, N_range, sigma_values)
 println("Data saved successfully.\n")

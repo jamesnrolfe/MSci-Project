@@ -3,19 +3,21 @@ using JLD2, Plots
 function create_comparison_plot()
     println("Loading data...")
     
-    data_filename = joinpath(@__DIR__, "lin_con_comparison_data.jld2")
-    plot_filename = joinpath(@__DIR__, "lin_con_comparison_plot.png")
+    # --- This file matches your new data script ---
+    data_filename = joinpath(@__DIR__, "outlier_graphs_data.jld2")
+    plot_filename = joinpath(@__DIR__, "outlier_graphs_plot.png")
 
     if !isfile(data_filename)
         println("ERROR: Data file not found: $data_filename")
         return
     end
 
-    local results_connected, results_linear, N_range, sigma_values
+    local results_standard, results_outlier, N_range, sigma_values
     try
         jldopen(data_filename, "r") do file
-            results_connected = read(file, "results_connected")
-            results_linear = read(file, "results_linear")
+            # --- Loads the new variable names ---
+            results_standard = read(file, "results_standard")
+            results_outlier = read(file, "results_outlier")
             N_range = read(file, "N_range")
             sigma_values = read(file, "sigma_values")
         end
@@ -28,33 +30,36 @@ function create_comparison_plot()
     gr()
     
     p = plot(
-        title = "Bond Dimension Comparison: Connected vs. Linear Models",
+        title = "Bond Dimension Comparison: Standard vs. Outlier Graphs",
         xlabel = "System Size (N)",
         ylabel = "Average Max Bond Dimension",
         legend = :topleft,
         size = (1000, 600)
     )
 
-    colors = [:blue, :purple, :red]
+    # Define colors and linestyles for clarity
+    colors = [:blue, :red] # Colors for sigma_values[1] and sigma_values[2]
     
     for (idx, σ) in enumerate(sigma_values)
         color = colors[idx]
         
+        # --- Plots the "Standard" (fully connected) data ---
         plot!(p,
             N_range,
-            results_connected[σ].avg,
-            ribbon = results_connected[σ].err,
-            label = "Connected (σ=$σ)",
+            results_standard[σ].avg,
+            ribbon = results_standard[σ].err,
+            label = "Standard (σ=$σ)",
             color = color,
             linestyle = :solid,
             fillalpha = 0.15
         )
         
+        # --- Plots the "Outlier" data ---
         plot!(p,
             N_range,
-            results_linear[σ].avg,
-            ribbon = results_linear[σ].err,
-            label = "Linear (σ=$σ)",
+            results_outlier[σ].avg,
+            ribbon = results_outlier[σ].err,
+            label = "Outlier (σ=$σ)",
             color = color,
             linestyle = :dash,
             fillalpha = 0.15

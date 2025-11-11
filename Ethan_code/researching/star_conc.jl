@@ -112,6 +112,10 @@ function run_simulation_star_concurrence(
                     continue
                 end
 
+
+
+
+
                 # Calculate 2-site RDM for center (1) and one outer spin (2)
                 orthogonalize!(ψ_gs, 1)
                 
@@ -137,6 +141,12 @@ function run_simulation_star_concurrence(
 
                 C = calculate_concurrence(complex(rho_matrix))
                 concurrence_for_avg[k] = C
+
+
+
+
+
+
             end
 
             avg_conc = mean(concurrence_for_avg)
@@ -203,7 +213,9 @@ else
                                 for σ in sigma_values)
 end
 
-# Run the simulation
+
+
+
 run_simulation_star_concurrence(
     results,
     N_range,

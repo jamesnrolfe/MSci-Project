@@ -43,6 +43,5 @@ function load_data_and_plot(data_file)
     println("Plot saved successfully to $output_filename")
 end
 
-println("--- Loading and Plotting from File ---")
 load_data_and_plot(filename)
 println("Plotting script finished.\n")

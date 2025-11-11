@@ -74,9 +74,9 @@ function calculate_entropy_manual(ψ::MPS, b::Int)
     return S_ent
 end
 
-"""
-MODIFIED: Function now accepts parameters and results dictionary.
-"""
+
+
+
 function run_entropy_simulation(
     entropy_results::Dict{Float64, Vector{Float64}},
     N_range,
@@ -96,11 +96,11 @@ function run_entropy_simulation(
     for σ in sigma_values_to_run
         
         if haskey(entropy_results, σ)
-            println("--- Skipping σ = $σ, results already loaded. ---")
+            println("Skipping σ = $σ, results already loaded")
             continue
         end
         
-        println("--- Running for σ = $σ ---")
+        println("Running for σ = $σ")
         
         entropies_for_N = zeros(Float64, length(N_range))
 
@@ -141,21 +141,19 @@ function run_entropy_simulation(
         # Save the *entire* results dictionary as a checkpoint
         try
             jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
-            println("--- Checkpoint saved for σ = $σ ---")
+            println("Checkpoint saved for σ = $σ ")
         catch e
             println("WARNING: Could not save checkpoint for σ = $σ. Error: $e")
         end
     end
 
-    println("--- All simulations finished. ---")
 end
 
 
 """
-MODIFIED: Main function to handle parameters, loading, and checkpointing.
+Main function to handle parameters, loading, and checkpointing.
 """
 function main()
-    println("Starting calculations...")
 
     N_range = 10:1:100 
     sigma_values_to_run = [0.0, 0.002] 
@@ -177,14 +175,11 @@ function main()
             loaded_data = jldopen(filename_entropy, "r")
             N_range_loaded = read(loaded_data, "N_range_used")
             
-            # --- ROBUST LOADING LOGIC ---
-            # We only check if N_range matches.
-            # This allows us to resume if the script was interrupted.
+
             if N_range_loaded == N_range
                 println("N_range matches. Resuming...")
                 entropy_results = read(loaded_data, "entropy_results")
                 
-                # Log what was intended vs. what is actually done
                 sigma_values_loaded = read(loaded_data, "sigma_values_used")
                 println("  > Sigmas intended to run (from file): ", sigma_values_loaded)
                 println("  > Sigmas *actually* completed: ", keys(entropy_results))
@@ -217,7 +212,6 @@ function main()
         Delta_coupling
     )
 
-    println("Calculations finished. Final data save...")
     jldsave(filename_entropy; entropy_results, N_range_used = N_range, sigma_values_used = sigma_values_to_run)
     println("Data saved successfully.\n")
 end
