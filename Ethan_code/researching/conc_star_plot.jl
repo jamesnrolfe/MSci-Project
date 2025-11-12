@@ -2,10 +2,10 @@ using JLD2
 using Plots
 using Statistics
 
-println("Starting Julia plotting script...")
+println("Starting Julia bar chart plotting script...")
 
-data_filename = joinpath(@__DIR__, "conc_star_data.jld2")
-plot_filename = joinpath(@__DIR__, "conc_star_plot.png")
+data_filename = joinpath(@__DIR__, "conc_star_data_0.002.jld2")
+plot_filename = joinpath(@__DIR__, "conc_star_plot_0.002.png")
 
 # Check if data file exists
 if !isfile(data_filename)
@@ -22,68 +22,76 @@ else
     close(file)
     
     
-    
     if isempty(sigma_values)
         error("No sigma values found in data file.")
     end
+    
     σ = sigma_values[1] 
+    data_for_sigma = results[σ] 
     
-    data_for_sigma = results[σ]
-    
-    plot_N_values = Int[]
-    y_values_mean = Float64[]
-    y_values_error = Float64[] # Std dev *between* pairs
+    println("Data loaded. Generating plots...")
 
-    # We loop over N_range and check if N exists as a key in the results
+    all_plots = Plots.Plot[]
+
     for N in N_range
-        # Check if this data point was computed and stored
         if haskey(data_for_sigma, N)
-            # Access the data using N as the key
             data_N = data_for_sigma[N]
+            concurrence_vector = data_N.avg
+            std_dev_vector = data_N.err 
             
-            # data_N.avg is the Vector{Float64} [C(1,2), C(1,3), ..., C(1,N)]
-            avg_concurrence_vector = data_N.avg
-            
-            if !isempty(avg_concurrence_vector)
-                # Calculate the average concurrence over all pairs j
-                mean_C = mean(avg_concurrence_vector)
+            if !isempty(concurrence_vector)
+                num_pairs = length(concurrence_vector)
+                pair_labels = ["(1, $(j+1))" for j in 1:num_pairs]
+
+                # Create the bar chart
+                plt = bar(
+                    pair_labels,
+                    concurrence_vector,
+                    yerror = std_dev_vector,
+                    label = "Individual Concurrence", 
+                    title = "Concurrence Spread for N=$N", 
+                    xlabel = "Pair (Center, Outer)",
+                    ylabel = "Mean Concurrence C(1,j)",
+                    legend = :topleft,
+                    xrotation = 60,
+                    bottom_margin = 20Plots.mm,
+                    left_margin = 10Plots.mm,  
+                    tickfont = 8 
+                )
                 
-                # Calculate the std dev of concurrence over all pairs j
-                std_C = std(avg_concurrence_vector)
+                # Calculate the average concurrence for this N
+                avg_C = mean(concurrence_vector)
+
+                hline!(
+                    [avg_C],
+                    label = "Equal Concurrence",
+                    color = :red,
+                    linestyle = :dash,
+                    linewidth = 2
+                )
                 
-                push!(plot_N_values, N)
-                push!(y_values_mean, mean_C)
-                push!(y_values_error, std_C)
+                push!(all_plots, plt)
             end
+        else
+            println("No data found for N=$N. Skipping.")
         end
     end
-    
-    if isempty(plot_N_values)
-        println("No valid data found to plot. Exiting.")
-    else
-        println("Data processed. Generating plot...")
 
-        plt = plot(
-            plot_N_values,
-            y_values_mean,
-            yerror = y_values_error,
-            title = "Average Concurrence (Center to Outer) vs. System Size",
-            xlabel = "System Size (N)",
-            ylabel = "Average Concurrence C(1, j)",
-            label = "Avg. C(1, j) (over j) for σ=$σ",
-            legend = :topright,
-            marker = :circle,
-            markersize = 4,
-            linewidth = 2,
-            xticks = N_range, 
-            grid = true,
-            gridstyle = :dash,
-            gridalpha = 0.5
+    if isempty(all_plots)
+        println("No plots were generated. Exiting.")
+    else
+        println("Combining $(length(all_plots)) plots into one file...")
+        
+        final_layout = (2, 3)
+        
+        combined_plot = plot(
+            all_plots..., 
+            layout = final_layout, 
+            size = (1800, 1200),
+            plot_title = "Star Graph Concurrence of Centre to Outer Nodes, (σ=$σ)"
         )
         
-        # Save the plot
-        savefig(plt, plot_filename)
-        
-        println("Plot saved successfully as $plot_filename")
+        savefig(combined_plot, plot_filename)
+        println("...all plots saved successfully to $plot_filename")
     end
 end

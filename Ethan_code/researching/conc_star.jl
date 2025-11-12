@@ -71,14 +71,12 @@ function run_simulation_star_concurrence(
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
 
-        # Check if N is already a key in the results dict
         if haskey(results[sigma_values[1]], N)
              println("Skipping N = $N, results already loaded/computed.")
             continue
         end
         
         for σ in sigma_values
-
             concurrence_for_avg_all_pairs = [zeros(Float64, num_graphs_avg) for _ in 2:N]
             
             for k in 1:num_graphs_avg
@@ -99,14 +97,29 @@ function run_simulation_star_concurrence(
                 
                 orthogonalize!(ψ_gs, 1)
                 s1 = sites[1]
-                C_tensor = ψ_gs[1] 
-                
+
+                # 1. Pre-calculate all "right environments"
+                R_envs = Vector{ITensor}(undef, N + 1)
+                R_envs[N + 1] = ITensor(1.0) # Identity tensor
+                for j in N:-1:2
+                    # --- FIX 1 ---
+                    # Was: dag(prime(ψ_gs[j], sites[j]))
+                    R_envs[j] = R_envs[j+1] * ψ_gs[j] * dag(prime(ψ_gs[j], "Link"))
+                end
+
+                # 2. Loop from j=2 to N, calculating each RDM
+                L_tensor = ψ_gs[1] # Starts with (s1, link)
+
                 for j_pair in 2:N
-                    C_tensor *= ψ_gs[j_pair]
                     s_j = sites[j_pair]
 
-                    rho_1j_tensor = C_tensor * prime(dag(C_tensor), dag(s1), dag(s_j))
+                    # "Wavefunction" for sites (1, j)
+                    rho_1j_wave = L_tensor * ψ_gs[j_pair] * R_envs[j_pair + 1]
+                    
+                    # Form the RDM
+                    rho_1j_tensor = rho_1j_wave * dag(prime(rho_1j_wave, s1, s_j))
 
+                    # Convert the RDM tensor to a standard 4x4 matrix
                     C_rows = combiner(s1, s_j)
                     C_cols = combiner(prime(s1), prime(s_j))
                     
@@ -114,16 +127,22 @@ function run_simulation_star_concurrence(
                     rho_matrix = matrix(rho_combined)
 
                     C = calculate_concurrence(complex(rho_matrix))
-                 
                     concurrence_for_avg_all_pairs[j_pair - 1][k] = C
+
+                    # 3. Update L_tensor for the next iteration
+                    if j_pair < N
+                        # --- FIX 2 ---
+                        # Was: dag(prime(ψ_gs[j_pair], s_j))
+                        L_tensor = L_tensor * ψ_gs[j_pair] * dag(prime(ψ_gs[j_pair], "Link"))
+                    end
                 end
+
             end # end loop over num_graphs_avg
 
-            # Save results in the dictionary keyed by N
+            # Save results
             if N >= 2
                 avg_conc_all_pairs = [mean(concurrence_for_avg_all_pairs[j_idx]) for j_idx in 1:(N-1)]
                 std_dev_all_pairs = [std(concurrence_for_avg_all_pairs[j_idx]) for j_idx in 1:(N-1)]
-                
                 results[σ][N] = (avg=avg_conc_all_pairs, err=std_dev_all_pairs)
             else
                 results[σ][N] = (avg=Float64[], err=Float64[])
@@ -131,7 +150,6 @@ function run_simulation_star_concurrence(
         end
         println("Completed N = $N")
 
-        # Save checkpoint
         try
             jldsave(filename; results, N_range, sigma_values)
             println("Checkpoint saved for N = $N")
@@ -142,28 +160,17 @@ function run_simulation_star_concurrence(
     println("...calculations finished.")
 end
 
-"""
-Initializes the results dictionary.
-The outer Dict keys are sigma values.
-The inner Dict keys are N (system size), and the values are
-a NamedTuple holding the avg (a Vector{Float64}) and err (a Vector{Float64}).
-"""
 function init_results_structure(sigma_values)
-    # Define the type for the inner dictionary: Dict{Int, @NamedTuple{...}}
     InnerDictType = Dict{Int, @NamedTuple{avg::Vector{Float64}, err::Vector{Float64}}}
-    
-    # Create the outer dictionary
     return Dict(σ => InnerDictType() for σ in sigma_values)
 end
-
-
 
 
 println("Starting Star Graph Concurrence calculations...")
 
 # Parameters
-N_range = 4:1:5
-sigma_values = [0.002] 
+N_range = 4:2:14
+sigma_values = [0.75] 
 num_graphs_avg = 10            
 num_sweeps = 10
 max_bond_dim_limit = 100
@@ -179,7 +186,6 @@ if isfile(filename)
         N_range_loaded = read(loaded_data, "N_range")
         sigma_values_loaded = read(loaded_data, "sigma_values")
         
-        # check if the parameters match
         if N_range_loaded == N_range && sigma_values_loaded == sigma_values
             println("Parameters match. Resuming...")
             global results = read(loaded_data, "results") 
