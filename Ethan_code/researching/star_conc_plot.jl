@@ -1,5 +1,4 @@
 using Plots, JLD2
-
 """
 Plots the average concurrence vs. N from the simulation data.
 """
@@ -36,7 +35,7 @@ function plot_concurrence_results(filename::String)
     
     for σ in sorted_sigmas
         avg_concurrence = results[σ].avg
-        error_std = results[σ].err
+        error_std = results[σ].err 
         
         plot!(
             p1,
