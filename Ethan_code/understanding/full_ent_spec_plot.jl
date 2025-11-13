@@ -1,8 +1,9 @@
 using JLD2
 using Plots
+# using HDF5
 
-data_filename = joinpath(@__DIR__,"full_ent_spec_data_0002.jld2")
-output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0002.png")
+data_filename = joinpath(@__DIR__,"full_ent_spec_data_0.002_50s.jld2")
+output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0.002_50s.png")
 
 println("Loading data from $data_filename...")
 
@@ -45,7 +46,7 @@ try
         x_axis_label = "Schmidt Coefficients"
         y_axis_label = "Coefficient Values"
         y_lims = (0, 0.6)
-        x_lims = (0, max_coeffs_to_store + 10)
+        x_lims = (0,  50)
 
         for (i, N) in enumerate(N_values)
             

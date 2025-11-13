@@ -1,9 +1,9 @@
 using JLD2
 using Plots
 
-data_filename_00 = joinpath(@__DIR__, "full_ent_spec_data_00.jld2")
-data_filename_0002 = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
-output_filename = joinpath(@__DIR__, "full_ent_spec_plot_both.png")
+data_filename_00 = joinpath(@__DIR__, "full_ent_spec_data_0.0.jld2")
+data_filename_0002 = joinpath(@__DIR__, "full_ent_spec_data_0.002.jld2")
+output_filename = joinpath(@__DIR__, "full_ent_spec_plot_both_right.png")
 
 println("Starting combined plotting script...")
 println("This script will overlay plots from two files.")
@@ -68,8 +68,10 @@ try
     
     x_axis_label = "Schmidt Coefficients"
     y_axis_label = "Coefficient Values"
-    y_lims = (0, 0.6) 
-    x_lims = (0, max_coeffs_to_store + 10)
+    # y_lims = (0, 0.6) 
+    # x_lims = (0, 50)
+    y_lims = (0, 0.01) 
+    x_lims = (10, 50)
 
     println("Generating 8 subplots...")
     for (i, N) in enumerate(N_values)
@@ -112,7 +114,7 @@ try
                 linecolor = :darkorange,
                 bar_width = 1,
                 gap = 0,
-                alpha = 0.6 
+                alpha = 0.8 
                 )
             end
             
@@ -133,7 +135,7 @@ try
                     linecolor = :purple,
                     bar_width = 1,
                     gap = 0,
-                    alpha = 0.6 
+                    alpha = 0.4 
                 )
             end
 

@@ -4,8 +4,8 @@ using Statistics
 
 println("Starting Julia bar chart plotting script...")
 
-data_filename = joinpath(@__DIR__, "conc_star_data_0.002.jld2")
-plot_filename = joinpath(@__DIR__, "conc_star_plot_0.002.png")
+data_filename = joinpath(@__DIR__, "conc_star_data_test.jld2")
+plot_filename = joinpath(@__DIR__, "conc_star_plot_test.png")
 
 # Check if data file exists
 if !isfile(data_filename)
