@@ -66,6 +66,8 @@ function run_simulation_star_concurrence(
     filename::String
 )
     
+    ITensors.set_warn_order(18)
+
     println("Data will be saved to: $filename")
 
     Threads.@threads for i in 1:length(N_range)
@@ -162,15 +164,15 @@ end
 println("Starting Star Graph Concurrence calculations...")
 
 # Parameters
-N_range = 4:1:14
-sigma_values = [0.002] 
+N_range = 4:2:14
+sigma_values = [0.2] 
 num_graphs_avg = 10            
 num_sweeps = 10
 max_bond_dim_limit = 100
 cutoff = 1E-10
 μ = 1.0                  
 
-filename = joinpath(@__DIR__, "conc_star_data_test.jld2") 
+filename = joinpath(@__DIR__, "conc_star_data_0.2.jld2") 
 
 if isfile(filename)
     println("Found existing data file. Loading progress...")

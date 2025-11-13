@@ -4,8 +4,8 @@ using Statistics
 
 println("Starting Julia bar chart plotting script...")
 
-data_filename = joinpath(@__DIR__, "conc_star_data_test.jld2")
-plot_filename = joinpath(@__DIR__, "conc_star_plot_test.png")
+data_filename = joinpath(@__DIR__, "conc_star_data_0.2.jld2")
+plot_filename = joinpath(@__DIR__, "conc_star_plot_0.2.png")
 
 # Check if data file exists
 if !isfile(data_filename)
@@ -36,19 +36,25 @@ else
     for N in N_range
         if haskey(data_for_sigma, N)
             data_N = data_for_sigma[N]
-            concurrence_vector = data_N.avg
-            std_dev_vector = data_N.err 
+            concurrence_vector = data_N.avg 
+            std_dev_vector = data_N.err
             
             if !isempty(concurrence_vector)
                 num_pairs = length(concurrence_vector)
                 pair_labels = ["(1, $(j+1))" for j in 1:num_pairs]
 
+
+                max_y_value = maximum(concurrence_vector .+ std_dev_vector)
+                
+                upper_limit = max_y_value + 0.2
+
                 # Create the bar chart
-                plt = bar(
+                plt = bar( 
                     pair_labels,
                     concurrence_vector,
-                    yerror = std_dev_vector,
-                    label = "Individual Concurrence", 
+                    # yerror = std_dev_vector,
+                    ylims = (0.0, upper_limit), 
+                    label = "Individual Concurrence",
                     title = "Concurrence Spread for N=$N", 
                     xlabel = "Pair (Center, Outer)",
                     ylabel = "Mean Concurrence C(1,j)",
@@ -82,11 +88,12 @@ else
     else
         println("Combining $(length(all_plots)) plots into one file...")
         
-        final_layout = (2, 3)
+
+        final_layout = (2, 3) 
         
         combined_plot = plot(
             all_plots..., 
-            layout = final_layout, 
+            layout = final_layout,
             size = (1800, 1200),
             plot_title = "Star Graph Concurrence of Centre to Outer Nodes, (σ=$σ)"
         )
