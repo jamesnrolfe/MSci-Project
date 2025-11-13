@@ -2,6 +2,7 @@ using Markdown
 using InteractiveUtils
 using Graphs, Random, GraphPlot, Plots, Colors, GraphRecipes
 using ITensors, ITensorMPS, LinearAlgebra
+using Compose
 
 """
 Creates a weighted adjacency matrix for a star graph with N nodes Node 1 is the center.
@@ -44,6 +45,7 @@ end
 
 N_nodes = 8
 sigma = 0.02
+mu = 1
 
 adjmat = weighted_star_adjmat(N_nodes, sigma)
 G = Graphs.SimpleGraph(adjmat)
@@ -56,6 +58,7 @@ for edge in edges(G)
     
     if weight > mu
         push!(edge_colors, colorant"salmon") # > 1.0
+    
     elseif weight < mu
         push!(edge_colors, colorant"violet")  # < 1.0
     else
@@ -75,5 +78,6 @@ p = GraphPlot.gplot(
     nodelabelsize=3,
     edgelinewidth=2.0,
     edgestrokec=edge_colors  
-) 
-display(p)
+)
+
+draw(PNG(joinpath(@__DIR__,"star_graph_plot.png")), p)

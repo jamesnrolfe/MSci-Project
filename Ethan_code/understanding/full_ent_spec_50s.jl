@@ -92,7 +92,7 @@ function run_simulation_ent_spec(
     J_val,
     Δ_val
 )
-    filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_new.jld2")
+    filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_50s.jld2")
     println("Data will be saved to: $filename")
 
     for N in N_values
@@ -132,7 +132,7 @@ end
 
 
 
-N_values = [20, 30, 40, 50, 60, 70, 80, 90]
+N_values = [51, 52, 53, 54, 55, 56, 57, 58]
 σ_val = 0.002       
 J_val = -1.0        
 Δ_val = -1.0          
@@ -141,7 +141,7 @@ num_sweeps = 30
 num_graphs_avg = 10  
 max_coeffs_to_store = 250 
 
-filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_new.jld2")
+filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_50s.jld2")
 data_lock = SpinLock() 
 
 
