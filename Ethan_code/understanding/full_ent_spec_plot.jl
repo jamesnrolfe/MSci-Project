@@ -2,8 +2,8 @@ using JLD2
 using Plots
 # using HDF5
 
-data_filename = joinpath(@__DIR__,"full_ent_spec_data_0.002_50s.jld2")
-output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0.002_50s.png")
+data_filename = joinpath(@__DIR__,"full_ent_spec_data_0.0.jld2")
+output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0.0.png")
 
 println("Loading data from $data_filename...")
 
