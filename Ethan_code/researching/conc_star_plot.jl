@@ -2,17 +2,15 @@ using JLD2
 using Plots
 using Statistics
 
-println("Starting Julia bar chart plotting script...")
 
-data_filename = joinpath(@__DIR__, "conc_star_data_0.2.jld2")
-plot_filename = joinpath(@__DIR__, "conc_star_plot_0.2.png")
+data_filename = joinpath(@__DIR__, "conc_star_data_0.002.jld2")
+plot_filename = joinpath(@__DIR__, "conc_star_plot_0.002.png")
 
 # Check if data file exists
 if !isfile(data_filename)
     println("ERROR: Data file not found: $data_filename")
-    println("Please run the simulation script first to generate this file.")
 else
-    println("Loading data from $data_filename...")
+    println("Loading data from $data_filename")
     
     # Load the data
     file = jldopen(data_filename, "r")
@@ -29,7 +27,6 @@ else
     σ = sigma_values[1] 
     data_for_sigma = results[σ] 
     
-    println("Data loaded. Generating plots...")
 
     all_plots = Plots.Plot[]
 
@@ -86,7 +83,7 @@ else
     if isempty(all_plots)
         println("No plots were generated. Exiting.")
     else
-        println("Combining $(length(all_plots)) plots into one file...")
+        println("Combining $(length(all_plots)) plots into one file")
         
 
         final_layout = (2, 3) 
@@ -99,6 +96,6 @@ else
         )
         
         savefig(combined_plot, plot_filename)
-        println("...all plots saved successfully to $plot_filename")
+        println("saved successfully to $plot_filename")
     end
 end

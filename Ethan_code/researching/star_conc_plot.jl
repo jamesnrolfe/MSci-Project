@@ -19,7 +19,6 @@ function plot_concurrence_results(filename::String)
     sigma_values = read(data, "sigma_values")
     close(data)
 
-    println("Plotting concurrence results...")
     
     p1 = plot(
         title = "Star Graph Concurrence vs. System Size",

@@ -68,7 +68,6 @@ function run_simulation_star_concurrence(
     
     ITensors.set_warn_order(18)
 
-    println("Data will be saved to: $filename")
 
     Threads.@threads for i in 1:length(N_range)
         N = N_range[i] 
@@ -119,9 +118,8 @@ function run_simulation_star_concurrence(
                  
                     concurrence_for_avg_all_pairs[j_pair - 1][k] = C
                 end
-            end # end loop over num_graphs_avg
+            end 
 
-            # Save results in the dictionary keyed by N
             if N >= 2
                 avg_conc_all_pairs = [mean(concurrence_for_avg_all_pairs[j_idx]) for j_idx in 1:(N-1)]
                 std_dev_all_pairs = [std(concurrence_for_avg_all_pairs[j_idx]) for j_idx in 1:(N-1)]
@@ -133,7 +131,6 @@ function run_simulation_star_concurrence(
         end
         println("Completed N = $N")
 
-        # Save checkpoint
         try
             jldsave(filename; results, N_range, sigma_values)
             println("Checkpoint saved for N = $N")
@@ -141,27 +138,22 @@ function run_simulation_star_concurrence(
             println("WARNING: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("...calculations finished.")
 end
 
 """
 Initializes the results dictionary.
 The outer Dict keys are sigma values.
-The inner Dict keys are N (system size), and the values are
-a NamedTuple holding the avg (a Vector{Float64}) and err (a Vector{Float64}).
+The inner Dict keys are N (system size), and the values are a NamedTuple holding the avg (a Vector{Float64}) and err (a Vector{Float64}).
 """
 function init_results_structure(sigma_values)
-    # Define the type for the inner dictionary: Dict{Int, @NamedTuple{...}}
     InnerDictType = Dict{Int, @NamedTuple{avg::Vector{Float64}, err::Vector{Float64}}}
     
-    # Create the outer dictionary
     return Dict(σ => InnerDictType() for σ in sigma_values)
 end
 
 
 
 
-println("Starting Star Graph Concurrence calculations...")
 
 # Parameters
 N_range = 4:2:14
@@ -175,7 +167,7 @@ cutoff = 1E-10
 filename = joinpath(@__DIR__, "conc_star_data_0.2.jld2") 
 
 if isfile(filename)
-    println("Found existing data file. Loading progress...")
+    println("Found existing data file")
     try
         loaded_data = jldopen(filename, "r")
         N_range_loaded = read(loaded_data, "N_range")
@@ -183,19 +175,18 @@ if isfile(filename)
         
         # check if the parameters match
         if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-            println("Parameters match. Resuming...")
             global results = read(loaded_data, "results") 
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            println("WARNING: Parameters in file do not match current script.")
             global results = init_results_structure(sigma_values)
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global results = init_results_structure(sigma_values)
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found.")
     global results = init_results_structure(sigma_values)
 end
 
@@ -211,6 +202,5 @@ run_simulation_star_concurrence(
     filename
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename; results, N_range, sigma_values)
 println("Data saved successfully to $filename\n")

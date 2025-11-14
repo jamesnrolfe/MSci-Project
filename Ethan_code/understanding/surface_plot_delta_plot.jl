@@ -24,7 +24,6 @@ function load_data_and_plot(data_file)
 
     plotlyjs() 
     
-    println("Generating plots for each sigma value...")
 
     for (idx, sigma) in enumerate(sigma_values)
         println("  Plotting for σ = $sigma")
@@ -58,4 +57,3 @@ function load_data_and_plot(data_file)
 end
 
 load_data_and_plot(filename)
-println("Plotting script finished.\n")

@@ -62,7 +62,6 @@ function run_simulation_avg_err_outlier(
     cutoff::Float64,
     μ::Float64
 )
-    # Define the new filename for the outlier data
     filename = joinpath(@__DIR__, "outl_bd_data.jld2")
   
     println("Data will be saved to: $filename")
@@ -135,30 +134,29 @@ filename = joinpath(@__DIR__, "outl_bd_data.jld2")
 
 # Data loading structure 
 if isfile(filename)
-    println("Found existing data file. Loading progress...") 
+    println("Found existing data file") 
     try
         loaded_data = jldopen(filename, "r")
         N_range_loaded = read(loaded_data, "N_range")
         sigma_values_loaded = read(loaded_data, "sigma_values")
         
         if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-            println("Parameters match. Resuming...") 
             global results = read(loaded_data, "results") 
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.") 
+            println("WARNING: Parameters in file do not match current script.") 
             global results = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
                                   for σ in sigma_values) 
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
                                   err=zeros(Float64, length(N_range))) 
                                   for σ in sigma_values) 
     end
 else
-    println("No existing data file found. Starting from scratch.") 
+    println("No existing data file found.") 
     global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
                                 err=zeros(Float64, length(N_range))) 
                                 for σ in sigma_values)

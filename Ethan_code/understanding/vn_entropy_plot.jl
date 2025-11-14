@@ -103,4 +103,3 @@ function load_and_generate_plots()
 end
 
 load_and_generate_plots()
-println("\nPlotting script finished.")

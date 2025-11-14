@@ -25,10 +25,6 @@ try
         println("Data loaded successfully.")
         
         sort!(N_values)
-        
-        if length(N_values) != 8
-            println("WARNING: Expected 8 N_values for a 2x4 layout, but found $(length(N_values)).")
-        end
 
         plot_width_px = 2400  
         plot_height_px = 1000 
@@ -80,8 +76,4 @@ try
     end
 catch e
     println("\nAn error occurred while trying to read the file or generate the plot:")
-    println(e)
-    if isa(e, HDF5.Exceptions.HDF5Exception)
-        println("Issue with the JLD2/HDF5 file itself or your environment's HDF5 library.")
-    end
 end
