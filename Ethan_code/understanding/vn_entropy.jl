@@ -150,9 +150,8 @@ function run_entropy_simulation(
 end
 
 
-"""
-Main function to handle parameters, loading, and checkpointing.
-"""
+
+
 function main()
 
     N_range = 10:1:100 
@@ -186,16 +185,15 @@ function main()
 
             else
                 println("WARNING: N_range in file ($(N_range_loaded)) does not match current script ($(N_range)).")
-                println("Starting from scratch.")
                 entropy_results = Dict{Float64, Vector{Float64}}()
             end
             close(loaded_data)
         catch e
-            println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+            println("WARNING: Could not load existing file. Error: $e")
             entropy_results = Dict{Float64, Vector{Float64}}()
         end
     else
-        println("No existing data file found. Starting from scratch.")
+        println("No existing data file found.")
         entropy_results = Dict{Float64, Vector{Float64}}()
     end
 

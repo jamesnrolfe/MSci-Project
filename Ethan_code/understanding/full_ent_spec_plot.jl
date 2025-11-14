@@ -1,8 +1,9 @@
 using JLD2
 using Plots
+# using HDF5
 
-data_filename = joinpath(@__DIR__,"full_ent_spec_data_0002.jld2")
-output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0002.png")
+data_filename = joinpath(@__DIR__,"full_ent_spec_data_0.0.jld2")
+output_filename = joinpath(@__DIR__,"full_ent_spec_plot_0.0.png")
 
 println("Loading data from $data_filename...")
 
@@ -24,10 +25,6 @@ try
         println("Data loaded successfully.")
         
         sort!(N_values)
-        
-        if length(N_values) != 8
-            println("WARNING: Expected 8 N_values for a 2x4 layout, but found $(length(N_values)).")
-        end
 
         plot_width_px = 2400  
         plot_height_px = 1000 
@@ -45,7 +42,7 @@ try
         x_axis_label = "Schmidt Coefficients"
         y_axis_label = "Coefficient Values"
         y_lims = (0, 0.6)
-        x_lims = (0, max_coeffs_to_store + 10)
+        x_lims = (0,  50)
 
         for (i, N) in enumerate(N_values)
             
@@ -79,8 +76,4 @@ try
     end
 catch e
     println("\nAn error occurred while trying to read the file or generate the plot:")
-    println(e)
-    if isa(e, HDF5.Exceptions.HDF5Exception)
-        println("Issue with the JLD2/HDF5 file itself or your environment's HDF5 library.")
-    end
 end

@@ -3,7 +3,7 @@ using Plots
 using GraphRecipes
 using LinearAlgebra
 using NetworkLayout
-using Random # Explicitly import Random for seed
+using Random 
 
 Random.seed!(42) 
 
@@ -74,27 +74,21 @@ function plot_graph_to_file(
     filename::String
 )
     
-    # Create a Graph object from the adjacency matrix
     g = Graphs.Graph(adj_mat) 
 
     layout_coords = spring(g) 
     
-    # Extract x and y coordinates into separate vectors
     x_coords = [p[1] for p in layout_coords]
     y_coords = [p[2] for p in layout_coords]
     
-    # Define a colormap (centered at μ)
     cmap = cgrad(:bwr, [μ - 2σ, μ, μ + 2σ], categorical=false)
     
-    # Create an attribute matrix for edge width
     edge_width_matrix = (abs.(adj_mat) ./ μ) .* 2
 
     println("Generating plot for $filename...")
 
-    # Set backend
     gr() 
 
-    # Create the plot 
     p = graphplot(
         g,
         # Pass coordinates directly to x and y keywords
@@ -149,5 +143,4 @@ function generate_all_plots()
     
 end
 
-# Run the main function
 generate_all_plots()

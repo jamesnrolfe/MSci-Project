@@ -165,11 +165,9 @@ function run_simulation_star_concurrence(
             println("WARNING: Could not save checkpoint for N = $N. Error: $e")
         end
     end
-    println("...calculations finished.")
 end
 
 
-println("Starting Star Graph Concurrence calculations...")
 
 # Parameters
 N_range = 4:1:20
@@ -184,30 +182,29 @@ filename = joinpath(@__DIR__, "star_conc_data.jld2")
 
 # Check for existing data and resume
 if isfile(filename)
-    println("Found existing data file. Loading progress...")
+    println("Found existing data file")
     try
         loaded_data = jldopen(filename, "r")
         N_range_loaded = read(loaded_data, "N_range")
         sigma_values_loaded = read(loaded_data, "sigma_values")
         
         if N_range_loaded == N_range && sigma_values_loaded == sigma_values
-            println("Parameters match. Resuming...")
             global results = read(loaded_data, "results") 
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            println("WARNING: Parameters in file do not match current script.")
             global results = Dict(σ => (avg=zeros(Float64, length(N_range)),
                                   err=zeros(Float64, length(N_range))) 
                                   for σ in sigma_values)
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
                                   err=zeros(Float64, length(N_range))) 
                                   for σ in sigma_values)
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found.")
     global results = Dict(σ => (avg=zeros(Float64, length(N_range)), 
                                 err=zeros(Float64, length(N_range))) 
                                 for σ in sigma_values)
@@ -228,7 +225,6 @@ run_simulation_star_concurrence(
     filename
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename; results, N_range, sigma_values)
 println("Data saved successfully.\n")
 

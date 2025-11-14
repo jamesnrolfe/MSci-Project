@@ -9,7 +9,6 @@ function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
     if !isfile(data_file)
         println("Error: Data file '$data_file' not found.")
-        println("Please run 'avg_err_bd.jl' first to generate the data.")
         return
     end
     

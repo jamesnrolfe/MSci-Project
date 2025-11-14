@@ -1,13 +1,10 @@
 using JLD2, Plots
 
 function create_comparison_plot()
-    println("Loading data...")
     
-    # Define the two data files to read
     connected_data_file = joinpath(@__DIR__, "full_bd_data.jld2")
     linear_data_file = joinpath(@__DIR__, "lin_bd_data.jld2")
     
-    # Define the output plot filename
     plot_filename = joinpath(@__DIR__, "lin_full_bd_plot.png")
 
     if !isfile(connected_data_file)
@@ -22,10 +19,8 @@ function create_comparison_plot()
     local results_connected, N_range_connected, sigma_values_connected
     local results_linear, N_range_linear, sigma_values_linear
 
-    # --- Load Connected Data ---
     try
         jldopen(connected_data_file, "r") do file
-            # These files have "results", not "results_connected"
             results_connected = read(file, "results")
             N_range_connected = read(file, "N_range")
             sigma_values_connected = read(file, "sigma_values")
@@ -36,7 +31,6 @@ function create_comparison_plot()
         return
     end
 
-    # --- Load Linear Data ---
     try
         jldopen(linear_data_file, "r") do file 
             results_linear = read(file, "results") 
@@ -49,7 +43,6 @@ function create_comparison_plot()
         return
     end
 
-    # --- Check for consistency ---
     if sigma_values_connected != sigma_values_linear
         println("WARNING: Sigma values do not match between files.")
         println("Connected Sigmas: $sigma_values_connected")
@@ -57,7 +50,6 @@ function create_comparison_plot()
         println("Plotting may be misleading. Using connected sigma values for loop.")
     end
     
-    # Use the sigma values from the connected file for the loop
     sigma_values = sigma_values_connected
 
     gr()
@@ -70,13 +62,11 @@ function create_comparison_plot()
         size = (1000, 600)
     )
 
-    # Define colors
-    colors = [:blue, :purple, :red, :green] # Added more in case
+    colors = [:blue, :purple, :red, :green]
     
     for (idx, σ) in enumerate(sigma_values)
         color = colors[idx]
         
-        # Plot Connected Data (if sigma exists)
         if haskey(results_connected, σ)
             plot!(p,
                 N_range_connected,
@@ -89,7 +79,6 @@ function create_comparison_plot()
             )
         end
         
-        # Plot Linear Data (if sigma exists)
         if haskey(results_linear, σ)
             plot!(p,
                 N_range_linear,

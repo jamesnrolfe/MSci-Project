@@ -62,7 +62,6 @@ function run_simulation_delta(
 )
 
     filename = joinpath(@__DIR__, "surface_plot_delta_data(-1.0).jld2")
-    println("Data will be saved to: $filename")
 
     for (i, N) in enumerate(N_range)
         
@@ -138,16 +137,16 @@ if isfile(filename)
             println("Parameters match. Resuming...")
             global avg_bond_dims = read(loaded_data, "avg_bond_dims") 
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            println("WARNING: Parameters in file do not match current script.")
             global avg_bond_dims = zeros(Float64, length(N_range), length(delta_range), length(sigma_values))
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global avg_bond_dims = zeros(Float64, length(N_range), length(delta_range), length(sigma_values))
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found.")
     global avg_bond_dims = zeros(Float64, length(N_range), length(delta_range), length(sigma_values))
 end
 

@@ -1,20 +1,18 @@
 using JLD2
 using Plots
 
-data_filename_00 = joinpath(@__DIR__, "full_ent_spec_data_00.jld2")
-data_filename_0002 = joinpath(@__DIR__, "full_ent_spec_data_0002.jld2")
-output_filename = joinpath(@__DIR__, "full_ent_spec_plot_both.png")
+data_filename_1 = joinpath(@__DIR__, "full_ent_spec_data_0.0.jld2")
+data_filename_2 = joinpath(@__DIR__, "full_ent_spec_data_0.002.jld2")
+output_filename = joinpath(@__DIR__, "full_ent_spec_plot_both_small.png")
 
-println("Starting combined plotting script...")
-println("This script will overlay plots from two files.")
 
 try
-    println("Loading data from $data_filename_00...")
-    if !isfile(data_filename_00)
-        println("ERROR: File not found: $data_filename_00")
+    println("Loading data from $data_filename_1...")
+    if !isfile(data_filename_1)
+        println("ERROR: File not found: $data_filename_1")
         throw(SystemError("File not found", 2))
     end
-    data_00 = JLD2.load(data_filename_00)
+    data_00 = JLD2.load(data_filename_1)
     results_00 = data_00["entanglement_spectrum_results"]
     N_values = data_00["N_values"]
     sigma_00 = data_00["σ_val"]
@@ -23,34 +21,17 @@ try
 
 
 
-    println("Loading data from $data_filename_0002...")
-    if !isfile(data_filename_0002)
-        println("ERROR: File not found: $data_filename_0002")
+    println("Loading data from $data_filename_2...")
+    if !isfile(data_filename_2)
+        println("ERROR: File not found: $data_filename_2")
         throw(SystemError("File not found", 2))
     end
-    data_0002 = JLD2.load(data_filename_0002)
+    data_0002 = JLD2.load(data_filename_2)
     results_0002 = data_0002["entanglement_spectrum_results"]
     N_values_0002 = data_0002["N_values"]
     sigma_0002 = data_0002["σ_val"]
     max_coeffs_0002 = data_0002["max_coeffs_to_store"]
 
-    println("All data loaded successfully.")
-
-
-
-
-
-    sort!(N_values)
-    if N_values != sort(N_values_0002)
-        println("WARNING: N_values differ between files. Using N_values from first file: $N_values")
-    end
-    
-    if length(N_values) != 8
-        println("WARNING: Expected 8 N_values for a 2x4 layout, but found $(length(N_values)).")
-    end
-
-    # Use the maximum coefficient count from *both* files to set x-axis limits
-    max_coeffs_to_store = max(max_coeffs_00, max_coeffs_0002)
 
 
     plot_width_px = 2400
@@ -68,15 +49,18 @@ try
     
     x_axis_label = "Schmidt Coefficients"
     y_axis_label = "Coefficient Values"
-    y_lims = (0, 0.6) 
-    x_lims = (0, max_coeffs_to_store + 10)
+
+    # y_lims = (0, 0.6) 
+    # x_lims = (0, 50)
+
+    y_lims = (0, 0.002) 
+    x_lims = (10, 50)
 
     println("Generating 8 subplots...")
     for (i, N) in enumerate(N_values)
         
         title_str = "$N nodes"
         
-        # Check if data exists for this N in both files
         has_data_00 = haskey(results_00, N)
         has_data_0002 = haskey(results_0002, N)
 
@@ -89,7 +73,7 @@ try
             title_str *= " (Missing σ=0.002)"
         end
         
-        # Define labels *only* for the first subplot (i=1)
+        # Define labels for the first subplot (i=1)
         # This creates a single legend for the whole figure
         label_00 = (i == 1) ? "σ=$sigma_00" : ""
         label_0002 = (i == 1) ? "σ=$sigma_0002" : ""
@@ -112,7 +96,7 @@ try
                 linecolor = :darkorange,
                 bar_width = 1,
                 gap = 0,
-                alpha = 0.6 
+                alpha = 0.8 
                 )
             end
             
@@ -133,7 +117,7 @@ try
                     linecolor = :purple,
                     bar_width = 1,
                     gap = 0,
-                    alpha = 0.6 
+                    alpha = 0.4 
                 )
             end
 

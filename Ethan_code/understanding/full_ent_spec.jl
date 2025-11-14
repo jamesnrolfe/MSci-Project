@@ -77,9 +77,10 @@ function get_schmidt_coeffs(N, σ, J, Δ, μ, num_sweeps)
     return coeffs
 end
 
-"""
-Main simulation function
-"""
+
+
+
+
 function run_simulation_ent_spec(
     entanglement_spectrum_results::Dict,
     data_lock::SpinLock,
@@ -92,7 +93,7 @@ function run_simulation_ent_spec(
     J_val,
     Δ_val
 )
-    filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_new.jld2")
+    filename = joinpath(@__DIR__, "full_ent_spec_data_0.002.jld2")
     println("Data will be saved to: $filename")
 
     for N in N_values
@@ -133,7 +134,7 @@ end
 
 
 N_values = [20, 30, 40, 50, 60, 70, 80, 90]
-σ_val = 0.002       
+σ_val = 0.0      
 J_val = -1.0        
 Δ_val = -1.0          
 μ_val = 1.0          
@@ -141,7 +142,7 @@ num_sweeps = 30
 num_graphs_avg = 10  
 max_coeffs_to_store = 250 
 
-filename = joinpath(@__DIR__, "full_ent_spec_data_0.002_new.jld2")
+filename = joinpath(@__DIR__, "full_ent_spec_data_0.002.jld2")
 data_lock = SpinLock() 
 
 
@@ -164,16 +165,16 @@ if isfile(filename)
             println("Parameters match. Resuming...")
             global entanglement_spectrum_results = read(loaded_data, "entanglement_spectrum_results")
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            println("WARNING: Parameters in file do not match current script")
             global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found.")
     global entanglement_spectrum_results = Dict{Int, Vector{Float64}}()
 end
 
@@ -191,7 +192,6 @@ run_simulation_ent_spec(
     Δ_val
 )
 
-println("Calculations finished. Final data save...")
 jldsave(filename;
     entanglement_spectrum_results, 
     N_values, 

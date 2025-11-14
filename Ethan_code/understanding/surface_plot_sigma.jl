@@ -125,16 +125,16 @@ if isfile(filename)
             println("Parameters match. Resuming...")
             global avg_bond_dims = read(loaded_data, "avg_bond_dims") 
         else
-            println("WARNING: Parameters in file do not match current script. Starting from scratch.")
+            println("WARNING: Parameters in file do not match current script.")
             global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
         end
         close(loaded_data)
     catch e
-        println("WARNING: Could not load existing file. Starting from scratch. Error: $e")
+        println("WARNING: Could not load existing file. Error: $e")
         global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
     end
 else
-    println("No existing data file found. Starting from scratch.")
+    println("No existing data file found.")
     global avg_bond_dims = zeros(Float64, length(N_range), length(sigma_range)) 
 end
 
