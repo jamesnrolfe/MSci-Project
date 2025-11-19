@@ -57,7 +57,7 @@ function run_simulation_avg_err(
     cutoff::Float64,
     μ::Float64
 )
-    filename = joinpath(@__DIR__, "avg_err_bd_data(-1.0)(-1.0).jld2")
+    filename = joinpath(@__DIR__, "big_N_scaling_data.jld2")
   
     println("Data will be saved to: $filename")
 
@@ -116,7 +116,7 @@ max_bond_dim_limit = 250
 cutoff = 1E-10
 μ = 1.0
 
-filename = joinpath(@__DIR__, "big_N_scaling.jld2")
+filename = joinpath(@__DIR__, "big_N_scaling_data.jld2")
 
 if isfile(filename)
     println("Found existing data file. Loading progress...")
