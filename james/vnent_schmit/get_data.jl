@@ -19,7 +19,8 @@ using JLD2, FileIO
 #* WE NEED THE BASIC FUNCTIONS FOR SOLVING THE HAMILTONIAN.
 
 J = Δ = -1
-N_vals = 10:10:80
+# N_vals = 10:10:80
+N_vals = [6]
 σ_vals = [0.000, 0.001, 0.002]
 μ = 1.0
 
