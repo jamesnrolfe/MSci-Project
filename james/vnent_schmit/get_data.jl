@@ -27,7 +27,7 @@ NUM_SWEEPS = 30
 MAX_BOND_DIM = 1000
 ACC = 1e-10
 
-AVG_OVER_PLOTS = 5
+AVG_OVER_PLOTS = 1
 
 function generate_fully_connected_wam(N::Int, σ::Float64; μ::Float64=1.0)
     """
