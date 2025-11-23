@@ -8,8 +8,10 @@ cutoff_val = 1E-14
 maxdim_val = 3000   
 num_sweeps = 10
 num_graphs_avg = 5
-N_values = 10:10:200
-target_sigmas = [0.0, 0.002]
+
+N_values = 10:10:100
+
+target_sigmas = [0.002]
 
 function create_weighted_adj_mat(N::Int, σ::Float64; μ::Float64=1.0)
     if σ == 0.0
@@ -68,26 +70,24 @@ function run_simulation(N_vals, sigma_val, n_graphs)
             # Filter small singular values to maintain precision
             filter!(x -> x > 1E-18, raw_coeffs) 
             
-
             append!(local_coeffs, raw_coeffs)
         end
         
         sort!(local_coeffs, rev=true) 
-        
         results[N] = local_coeffs
+
+        fname = joinpath(@__DIR__, "high_prec_spec_data_$(sigma_val).jld2")
+        save(fname, Dict(
+            "entanglement_spectrum_results" => results,
+            "N_values" => N_vals, 
+            "σ_val" => sigma_val,
+            "precision" => "1E-14"
+        ))
+        println("  Checkpoint saved for N = $N")
     end
     return results
 end
 
 for sig in target_sigmas
-    res = run_simulation(N_values, sig, num_graphs_avg)
-    
-    fname = "high_prec_spec_data_$(sig).jld2"
-    save(fname, Dict(
-        "entanglement_spectrum_results" => res,
-        "N_values" => N_values,
-        "σ_val" => sig,
-        "precision" => "1E-14"
-    ))
-    println("Saved high precision data to $fname")
+    run_simulation(N_values, sig, num_graphs_avg)
 end

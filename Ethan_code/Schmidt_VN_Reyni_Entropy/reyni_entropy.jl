@@ -159,7 +159,7 @@ function run_entropy_simulation(
         # Add the new results to the dictionary
         entropy_results[σ] = entropies_for_N
         
-        # Save the *entire* results dictionary as a checkpoint
+        # Save the results dictionary as a checkpoint
         try
             jldsave(filename_entropy; 
                 entropy_results, 
@@ -189,9 +189,9 @@ function main()
     Delta_coupling = -1.0
     
     # α = 1.0  -> Von Neumann
-    # α = 0.5  -> Robust for Bond Dimension scaling (recommended by paper)
+    # α = 0.5  -> Robust (recommended by paper)
     # α = 0.0  -> Max Entropy (log of Schmidt Rank)
-    alpha_val = 0.5 
+    alpha_val = 0.0 
 
     filename_entropy = joinpath(@__DIR__, "renyi_entropy_data_$(alpha_val).jld2")
     local entropy_results 
