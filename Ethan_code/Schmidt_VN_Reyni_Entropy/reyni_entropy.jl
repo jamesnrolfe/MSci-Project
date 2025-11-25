@@ -189,7 +189,7 @@ function main()
     Delta_coupling = -1.0
     
     # α = 1.0  -> Von Neumann
-    # α = 0.5  -> Robust (recommended by paper)
+    # α = 0.5  -> Reyni 
     # α = 0.0  -> Max Entropy (log of Schmidt Rank)
     alpha_val = 0.0 
 

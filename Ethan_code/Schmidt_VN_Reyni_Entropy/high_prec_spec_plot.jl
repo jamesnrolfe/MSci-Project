@@ -1,87 +1,75 @@
 using JLD2
-using FileIO
 using Plots
-using Statistics
 
-filename = joinpath(@__DIR__, "high_prec_spec_data_0.0.jld2")
-
-if !isfile(filename)
-    error("Data file not found: $filename")
-end
+data_filename = joinpath(@__DIR__,"high_prec_spec_data_0.002.jld2")
+output_filename = joinpath(@__DIR__,"high_prec_spec_plot_0.002.png")
 
 
+try
+    jldopen(data_filename, "r") do file
+        
+        required_keys = ["entanglement_spectrum_results", "N_values", "σ_val", "max_coeffs_to_store"]
+        if !all(haskey(file, k) for k in required_keys)
+            println("ERROR: The JLD2 file '$data_filename' is missing one or more required keys.")
+            println("It must contain: $required_keys")
+            return
+        end
 
-data = load(filename)
-results = data["entanglement_spectrum_results"] # This is a Dict{Int, Vector{Float64}}
-N_values = data["N_values"]
-sigma_val = data["σ_val"]
+        entanglement_spectrum_results = read(file, "entanglement_spectrum_results")
+        N_values = read(file, "N_values")
+        σ_val = read(file, "σ_val")
+        max_coeffs_to_store = read(file, "max_coeffs_to_store")
 
+        
+        sort!(N_values)
 
+        plot_width_px = 2400  
+        plot_height_px = 1000 
+        
+        p_layout = plot(
+            layout = (2, 4),
+            size = (plot_width_px, plot_height_px),
+            plot_title = "Full Entanglement Spectrum for σ=$(σ_val)",
+            plot_titlefontsize = 20,
+            legend = false,
+            top_margin = 10Plots.mm,
+            margin = 10Plots.mm      
+        )
+        
+        x_axis_label = "Schmidt Coefficients"
+        y_axis_label = "Coefficient Values"
+        y_lims = (0, 0.6)
+        x_lims = (0,  50)
 
+        for (i, N) in enumerate(N_values)
+            
+            if !haskey(entanglement_spectrum_results, N)
+                println("  WARNING: No data found for N = $N. Plotting an empty subplot.")
+                plot!(p_layout, subplot = i, title = "$N nodes (No Data)", framestyle=:box)
+                continue
+            end
+            
+            coeffs = entanglement_spectrum_results[N]
+            
+            bar!(
+                p_layout,
+                subplot = i,
+                coeffs,
+                title = "$N nodes",
+                xlabel = x_axis_label,
+                ylabel = y_axis_label,
+                ylims = y_lims,
+                xlims = x_lims,
+                seriescolor = :orange,
+                linecolor = :darkorange,
+                bar_width = 1,
+                gap = 0,
+            )
+        end
 
-entropies = Float64[]
-sorted_N = sort(collect(keys(results)))
-filter!(n -> n <= 100, sorted_N)
+        savefig(p_layout, output_filename)
 
-largest_N = maximum(sorted_N)
-largest_N_spectrum = Float64[]
-
-for N in sorted_N
-    coeffs = results[N]
-    
-    # Calculate probabilities p = λ^2
-    p = coeffs .^ 2
-    
-    # Filter out numerical zeros to avoid log(0)
-    filter!(x -> x > 1e-20, p)
-    
-    # Determine normalization factor (effective number of graphs)
-    num_graphs = sum(p) 
-    
-    # Calculate Von Neumann Entropy
-    # S = - sum(p * log(p)) / num_graphs
-    # (This is equivalent to averaging the entropy of each realization)
-    S = -sum(p .* log.(p)) / num_graphs
-    
-    push!(entropies, S)
-    
-    if N == largest_N
-        global largest_N_spectrum = coeffs
     end
+catch e
+    println("\nAn error occurred while trying to read the file or generate the plot:")
 end
-
-p1 = plot(
-    sorted_N, 
-    entropies, 
-    marker = :circle,
-    label = "S_VN",
-    xlabel = "System Size (N)", 
-    ylabel = "Von neumann Entropy",
-    title = "Von Neumann Entropy Scaling (σ = $sigma_val)",
-    legend = :bottomright,
-    grid = true
-)
-
-num_graphs_int = round(Int, sum(largest_N_spectrum .^ 2))
-
-unique_coeffs = largest_N_spectrum[1:num_graphs_int:end]
-probs = unique_coeffs .^ 2
-filter!(x -> x > 1e-20, probs)
-xi = -log.(probs)
-
-p2 = plot(
-    1:length(xi), 
-    xi, 
-    seriestype = :scatter,
-    markersize = 3,
-    color = :crimson,
-    label = "   ",
-    xlabel = "Coefficient Index", 
-    ylabel = "Scmidt Coefficients",
-    title = "Schmidt Sprectrum (N = $largest_N, σ = $sigma_val)",
-    grid = true
-)
-
-final_plot = plot(p1, p2, layout = (1, 2), size = (900, 450), margin=5Plots.mm)
-
-savefig(final_plot, joinpath(@__DIR__, "high_prec_spec_plot_0.0.png"))

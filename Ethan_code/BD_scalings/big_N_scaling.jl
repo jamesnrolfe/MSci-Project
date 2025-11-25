@@ -108,7 +108,7 @@ end
 
 
 
-N_range = 10:10:500
+N_range = 10:50:500
 sigma_values = [0.0, 0.002]
 num_graphs_avg = 10
 num_sweeps = 30

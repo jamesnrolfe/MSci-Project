@@ -29,8 +29,8 @@ function find_divergence_index(s_clean::Vector{Float64}, s_disorder::Vector{Floa
     return len # If no divergence found, return the end
 end
 
-file_clean = joinpath(@__DIR__, "high_prec_spec_data_200.jld2")
-file_disorder = joinpath(@__DIR__, "full_ent_spec_data_0.002.jld2")
+file_clean = joinpath(@__DIR__, "high_prec_spec_data_0.0.jld2")
+file_disorder = joinpath(@__DIR__, "high_prec_spec_data_0.002.jld2")
 
 
 

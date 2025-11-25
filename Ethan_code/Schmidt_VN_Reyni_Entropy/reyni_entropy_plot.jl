@@ -3,7 +3,7 @@ using Plots
 using Statistics
 
 
-target_file = joinpath(@__DIR__, "renyi_entropy_data_0.5.jld2")
+target_file = joinpath(@__DIR__, "renyi_entropy_data_0.0.jld2")
 
 if !isfile(target_file)
     error("Data file not found: $target_file")
@@ -31,6 +31,7 @@ p = plot(
 sigmas = sort(collect(keys(entropy_results)))
 
 for σ in sigmas
+    print(σ)
     entropies = entropy_results[σ]
     
     plot!(p, N_range, entropies, 
