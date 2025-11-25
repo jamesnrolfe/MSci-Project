@@ -57,7 +57,8 @@ for (sig, data) in analysis
 end
 
 # Add a reference line for Machine Precision
-hline!(p, [1e-16], label="Machine Precision", color=:grey, linestyle=:dash)
+epss = eps(Float64)
+hline!(p, [epss], label="Machine Precision", color=:grey, linestyle=:dash)
 
 savefig(p, output_filename)
 println("Plot saved to $output_filename")
