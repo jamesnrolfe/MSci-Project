@@ -11,7 +11,7 @@ function find_divergence_index(s_clean::Vector{Float64}, s_disorder::Vector{Floa
         diff = abs(s_clean[i] - s_disorder[i])
         avg = (s_clean[i] + s_disorder[i]) / 2.0
         
-        # Avoid division by zero for very small numbers
+        # Avoid division by zero f or very small numbers
         if avg < 1e-14
             if diff > 1e-14 
                 return i 
