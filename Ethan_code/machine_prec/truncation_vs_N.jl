@@ -214,15 +214,17 @@ end
 function main()
     global datafile = joinpath(@__DIR__, "mach_prec_data.jld2")
 
-    N_vals = vcat(10:2:40, 80, 100, 120) 
-    σ_vals = [0.000, 0.001, 0.002, 0.005, 0.1, 0.3, 0.5]
+    # N_vals = vcat(10:2:40, 80, 100, 120) 
+    # σ_vals = [0.001, 0.002, 0.005, 0.1, 0.3, 0.5]
 
+    N_vals = vcat(14:2:28) 
+    σ_vals = [0.001, 0.002, 0.005]
 
     results = tail_contribution_with_system_size(N_vals, σ_vals)
 
     plt = plot_truncation_err_vs_N(results)
 
-    savefig(plt, joinpath(@__DIR__, "truncation_vs_N.png"))
+    savefig(plt, joinpath(@__DIR__, "truncation_vs_N_small.png"))
 
 
 end
