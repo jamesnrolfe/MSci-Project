@@ -6,11 +6,11 @@ using Statistics
 using Random
 
 N_vals = [6, 10, 14, 18, 22, 26, 30, 40, 50, 60, 70, 80]
-σ_vals = [0.0, 0.001, 0.002]           
+σ_vals = [0.0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]           
 μ = 1.0
 num_sweeps = 20
 
-max_bond_dim = 10000 
+max_bond_dim = 1000 # could not get this to simulate with anything more than this even on HPC
 precision_cutoff = eps(Float64) 
 
 
@@ -54,23 +54,24 @@ println("Starting simulation loop...")
 for N in N_vals
     for σ in σ_vals
         println("Processing N=$N, σ=$σ ...")
+        flush(stdout)
 
-        # 1. Setup Model
+        # Setup Model
         A = gen_full_conn(N, σ; μ=μ)
         sites = siteinds("S=1/2", N)
         H = create_xxz_mpo(N, A, sites)
         psi0 = randomMPS(sites, 2)
         
-        # 2. Setup DMRG Sweeps
+        # Setup DMRG Sweeps
         sweeps = Sweeps(num_sweeps)
         setmaxdim!(sweeps, max_bond_dim)
         setcutoff!(sweeps, precision_cutoff) 
         setnoise!(sweeps, 1E-6, 1E-10, 0.0)
 
-        # 3. Run DMRG
+        # Run DMRG
         energy, psi = dmrg(H, psi0, sweeps; outputlevel=0)
         
-        # 4. Calculate Entanglement Spectrum
+        # Calculate Entanglement Spectrum
         center_b = N ÷ 2
         orthogonalize!(psi, center_b)
         u, s, v = svd(psi[center_b], (linkind(psi, center_b-1), siteind(psi, center_b)))
@@ -83,7 +84,7 @@ for N in N_vals
         norm_factor = sqrt(sum(sv.^2))
         sv = sv ./ norm_factor
         
-        # 5. Save Data
+        # Save Data
         # We save the singular values (sv). 
         # From 'sv', you can calculate Renyi Entropy for ANY alpha (0 to 1),
         # as well as Von Neumann entropy and truncation errors.
@@ -94,7 +95,7 @@ for N in N_vals
         save(output_path, data)
         
         println("  > Finished N=$N, σ=$σ. Saved.")
-        
+        flush(stdout)
         # Clean up memory
         GC.gc()
     end
