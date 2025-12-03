@@ -1,21 +1,23 @@
 
 
 using ITensors
+using ITensorMPS
 using JLD2
 using LinearAlgebra
 using Random
 using Printf
+using Statistics
 
 # --- 1. System Setup Functions ---
 
 function create_MPS(L::Int)
     # siteinds is an ITensors function. 
     # If this fails, ITensors is not loaded.
-    sites = siteinds("S=1/2", L; conserve_qns=true)
+    sites = ITensors.siteinds("S=1/2", L; conserve_qns=true)
     
     # Start with a Néel state to avoid local minima
     initial_state = [isodd(i) ? "Up" : "Dn" for i in 1:L]
-    ψ₀ = MPS(sites, initial_state) 
+    ψ₀ = ITensorMPS.MPS(sites, initial_state) 
     return ψ₀, sites
 end
 
@@ -70,7 +72,7 @@ function run_hpc_simulation()
     cutoff_schedule = ACC # Use machine precision cutoff
     noise_schedule = [1E-7, 1E-8, 1E-10, 0.0] 
 
-    filename = joinpath(@__DIR__, "dmrg_hpc_results.jld2")
+    filename = joinpath(@__DIR__, "all_MPS_data.jld2")
     
     # Load existing data or create new
     if isfile(filename)
@@ -122,9 +124,12 @@ function run_hpc_simulation()
                 center_b = N ÷ 2
                 orthogonalize!(psi, center_b)
                 
-                # Extract Spectrum
-                # svd returns (U, S, V). S contains singular values on diagonal.
-                u, s, v = svd(psi[center_b], (linkind(psi, center_b-1), siteind(psi, center_b)))
+                # Robustly identify indices for the SVD cut
+                # uniqueinds(A, B) returns indices in A that are NOT in B.
+                # This automatically grabs the site index and the left link (if it exists).
+                left_inds = uniqueinds(psi[center_b], psi[center_b+1])
+                
+                u, s, v = svd(psi[center_b], left_inds)
                 
                 # Extract eigenvalues (squared singular values)
                 # ITensors DiagonalTensor storage access:
