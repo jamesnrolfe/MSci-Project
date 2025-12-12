@@ -50,7 +50,6 @@ function create_weighted_xxz_mpo(N::Int, adj_mat, sites; J::Float64, Δ::Float64
     return MPO(ampo, sites)
 end
 
-# --- 2. Main HPC Simulation Loop ---
 
 function run_hpc_simulation()
     # HPC / Precision Constants
