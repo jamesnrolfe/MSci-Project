@@ -560,7 +560,15 @@
   },
   {
    "cell_type": "code",
+<<<<<<< HEAD
+<<<<<<< HEAD
    "execution_count": 7,
+=======
+   "execution_count": 15,
+>>>>>>> db9a38869f5e418bfced8ff4bfec6e32ce99f98a
+=======
+   "execution_count": 15,
+>>>>>>> db9a38869f5e418bfced8ff4bfec6e32ce99f98a
    "id": "301df996",
    "metadata": {},
    "outputs": [],
