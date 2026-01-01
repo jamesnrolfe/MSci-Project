@@ -1,4 +1,5 @@
 using JLD2, Plots, Colors
+using Measures 
 
 gr() 
 
@@ -22,19 +23,27 @@ function load_data_and_plot(data_file)
     N_slice = 1:91
     
     plt = plot(N_values[N_slice], sigma_values, avg_bond_dims'[:, N_slice],
-        st=:surface,
-        title="Average Bond Dimension vs. (N, σ)",
-        xlabel="System Size (N)",
-        ylabel="σ",
-        zlabel="Avg. Max Bond Dimension",
+        st = :surface,
         
-        camera=(25, 35),
+        title = "Average Bond Dimension against \nSystem Size and Disorder",
+        xlabel = "System Size (N)",   
+        ylabel = "\n       Disorder (σ)",      
+        zlabel = "\nAvg Max Bond Dim",  
         
-        c=cgrad(:inferno),
-        legend=false,
-        lw=0,  
-        size=(800, 600), 
-        dpi=300        
+        camera = (25, 35),
+        
+        c = cgrad(:inferno),
+        legend = false,
+        lw = 0.1,             
+        fillalpha = 1.0,     
+        
+        tickfontsize = 14,    
+        guidefontsize = 16,   
+        titlefontsize = 22,
+        margin = 3mm,       
+        
+        size = (1000, 800),   
+        dpi = 300        
     )
      
     output_filename = joinpath(@__DIR__, "surface_plot_sigma_plot(-1.0)(-1.0).png")

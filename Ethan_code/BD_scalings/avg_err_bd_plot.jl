@@ -5,6 +5,11 @@ gr()
 
 filename = joinpath(@__DIR__, "avg_err_bd_data(-1.0)(-1.0).jld2")
 
+
+
+
+
+
 function load_data_and_plot(data_file)
     println("Loading data from $data_file...")
     if !isfile(data_file)
@@ -46,9 +51,7 @@ function load_data_and_plot(data_file)
         dpi=300             
     )
     
-    # N_slice = 1:91
-    N_slice = setdiff(1:91, [66, 75])
-    # err at 75th, 66th
+    N_slice = 1:91
 
     for σ in sigma_values
         
@@ -69,6 +72,11 @@ function load_data_and_plot(data_file)
     output_filename = joinpath(@__DIR__, "avg_err_bd_plot(-1.0)(-1.0).png")
     savefig(plt, output_filename)
     println("Plot saved successfully to $output_filename")
+
+    println(maximum(results_data[0.002]))
+
 end
+
+
 
 load_data_and_plot(filename)
